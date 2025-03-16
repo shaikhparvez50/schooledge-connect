@@ -5,9 +5,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChart3, BookOpen, Users } from "lucide-react";
 
-// Adding framer-motion for smooth animations
-<lov-add-dependency>framer-motion@latest</lov-add-dependency>
-
 const Hero = () => {
   return (
     <section className="min-h-screen pt-24 pb-16 px-6 md:px-12 lg:px-24 flex flex-col justify-center relative overflow-hidden">

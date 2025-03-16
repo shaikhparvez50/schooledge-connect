@@ -13,7 +13,9 @@ import {
   X,
   Search,
   BarChart2,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +103,22 @@ const Dashboard = () => {
             >
               <Settings className="h-5 w-5 mr-3" />
               Settings
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => navigate("/notes")}
+            >
+              <FileText className="h-5 w-5 mr-3" />
+              My Notes
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => navigate("/upload-courses")}
+            >
+              <Upload className="h-5 w-5 mr-3" />
+              Upload Materials
             </Button>
           </nav>
           

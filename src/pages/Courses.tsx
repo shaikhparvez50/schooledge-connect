@@ -1,7 +1,6 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, Film, Image, Plus } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Film, Image, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,34 +18,80 @@ const Courses = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [allCourses, setAllCourses] = useState<any[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
 
-  // Mock course data
-  const [courses, setCourses] = useState([
-    {
-      id: "course-1",
-      title: "Introduction to Mathematics",
-      instructor: "Dr. Sarah Johnson",
-      thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb",
-      type: "video",
-      date: "2023-05-15",
-    },
-    {
-      id: "course-2",
-      title: "Advanced Physics Concepts",
-      instructor: "Prof. Michael Chen",
-      thumbnail: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa",
-      type: "document",
-      date: "2023-06-22",
-    },
-    {
-      id: "course-3",
-      title: "Literature Analysis Techniques",
-      instructor: "Dr. Emily Brooks",
-      thumbnail: "https://images.unsplash.com/photo-1491841651911-c44c30c34548",
-      type: "image",
-      date: "2023-07-10",
-    },
-  ]);
+  useEffect(() => {
+    const mockCourses = [
+      {
+        id: "course-1",
+        title: "Introduction to Mathematics",
+        instructor: "Dr. Sarah Johnson",
+        thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb",
+        type: "video",
+        date: "2023-05-15",
+      },
+      {
+        id: "course-2",
+        title: "Advanced Physics Concepts",
+        instructor: "Prof. Michael Chen",
+        thumbnail: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa",
+        type: "document",
+        date: "2023-06-22",
+      },
+      {
+        id: "course-3",
+        title: "Literature Analysis Techniques",
+        instructor: "Dr. Emily Brooks",
+        thumbnail: "https://images.unsplash.com/photo-1491841651911-c44c30c34548",
+        type: "image",
+        date: "2023-07-10",
+      },
+    ];
+    
+    const publicCourses = JSON.parse(localStorage.getItem("publicCourses") || "[]");
+    
+    const formattedPublicCourses = publicCourses.map((course: any) => {
+      let type = "document";
+      if (course.files && course.files.length > 0) {
+        const firstFile = course.files[0];
+        if (firstFile.type.includes("image")) {
+          type = "image";
+        } else if (firstFile.type.includes("video")) {
+          type = "video";
+        }
+      }
+      
+      return {
+        id: `public-${course.id}`,
+        title: course.title,
+        instructor: course.author || "Anonymous",
+        thumbnail: course.files && course.files.length > 0 ? course.files[0].url : "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa",
+        type,
+        date: new Date(course.createdAt).toISOString().split("T")[0],
+      };
+    });
+    
+    const combinedCourses = [...mockCourses, ...formattedPublicCourses];
+    setAllCourses(combinedCourses);
+    setFilteredCourses(combinedCourses);
+  }, []);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCourses(allCourses);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = allCourses.filter(course => 
+      course.title.toLowerCase().includes(query) || 
+      course.instructor.toLowerCase().includes(query)
+    );
+    
+    setFilteredCourses(filtered);
+  }, [searchQuery, allCourses]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -65,9 +110,8 @@ const Courses = () => {
       return;
     }
 
-    // Add new course to the list
     const newCourse = {
-      id: `course-${courses.length + 1}`,
+      id: `course-${allCourses.length + 1}`,
       title,
       instructor: userData?.name || "Anonymous User",
       thumbnail: URL.createObjectURL(selectedFile),
@@ -75,9 +119,29 @@ const Courses = () => {
       date: new Date().toISOString().split("T")[0],
     };
 
-    setCourses([newCourse, ...courses]);
+    const updatedCourses = [newCourse, ...allCourses];
+    setAllCourses(updatedCourses);
+    setFilteredCourses(updatedCourses);
     
-    // Reset form
+    const publicCourses = JSON.parse(localStorage.getItem("publicCourses") || "[]");
+    const newPublicCourse = {
+      id: Date.now(),
+      title,
+      description,
+      files: [{
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type,
+        url: URL.createObjectURL(selectedFile)
+      }],
+      createdAt: new Date().toISOString(),
+      author: userData?.name || "Anonymous User",
+      authorId: userData?.id || "unknown",
+      isPublic: true
+    };
+    
+    localStorage.setItem("publicCourses", JSON.stringify([...publicCourses, newPublicCourse]));
+    
     setTitle("");
     setDescription("");
     setSelectedFile(null);
@@ -94,6 +158,23 @@ const Courses = () => {
           Back to Dashboard
         </Button>
         <h1 className="text-2xl font-bold">Course Materials</h1>
+      </div>
+
+      <div className="relative mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search courses by title or instructor..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4"
+          />
+        </div>
+        {searchQuery && (
+          <div className="mt-2 text-sm text-muted-foreground">
+            Found {filteredCourses.length} result{filteredCourses.length !== 1 ? 's' : ''} for "{searchQuery}"
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-8">
@@ -192,7 +273,7 @@ const Courses = () => {
 
         <TabsContent value="all" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((course) => (
+            {filteredCourses.map((course) => (
               <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <div 
                   className="h-40 bg-cover bg-center" 
@@ -219,9 +300,8 @@ const Courses = () => {
         
         <TabsContent value="videos" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.filter(c => c.type === "video").map((course) => (
+            {filteredCourses.filter(c => c.type === "video").map((course) => (
               <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Same card content as "all" tab */}
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
@@ -245,9 +325,8 @@ const Courses = () => {
         
         <TabsContent value="documents" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.filter(c => c.type === "document").map((course) => (
+            {filteredCourses.filter(c => c.type === "document").map((course) => (
               <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Same card content structure */}
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
@@ -271,9 +350,8 @@ const Courses = () => {
         
         <TabsContent value="images" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.filter(c => c.type === "image").map((course) => (
+            {filteredCourses.filter(c => c.type === "image").map((course) => (
               <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Same card content structure */}
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}

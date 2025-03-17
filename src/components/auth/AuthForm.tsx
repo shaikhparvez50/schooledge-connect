@@ -6,6 +6,7 @@ import { ArrowLeft, Mail, Lock, UserCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { saveUserData } from "@/lib/user-utils";
 
 type AuthFormProps = {
   type: "login" | "register";
@@ -36,11 +37,27 @@ const AuthForm = ({ type }: AuthFormProps) => {
       setLoading(false);
       
       if (type === "login") {
+        // Save user data to localStorage when logging in
+        saveUserData({
+          id: Math.random().toString(36).substr(2, 9),
+          name: formData.email.split('@')[0], // Use part of the email as name for login
+          email: formData.email,
+          role: 'student', // Default role for login
+        });
+        
         toast.success("Successfully logged in!");
         navigate("/dashboard");
       } else {
+        // Save user data to localStorage when registering
+        saveUserData({
+          id: Math.random().toString(36).substr(2, 9),
+          name: formData.name,
+          email: formData.email,
+          role: formData.role as 'student' | 'teacher',
+        });
+        
         toast.success("Account created successfully!");
-        navigate("/login");
+        navigate("/dashboard"); // Navigate directly to dashboard instead of login
       }
     }, 1500);
   };

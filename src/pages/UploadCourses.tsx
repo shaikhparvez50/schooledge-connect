@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, Image, File, X } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Image, File, X, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,19 +60,32 @@ const UploadCourses = () => {
       url: URL.createObjectURL(file) // This creates a temporary URL for preview
     }));
     
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
     const newMaterial = {
       id: Date.now(),
       title,
       description,
       files: fileInfo,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      author: userData.name || 'Anonymous',
+      authorId: userData.id || 'unknown',
+      isPublic: true // Making sure all courses are public
     };
     
+    // Get all public courses
+    const publicCourses = localStorage.getItem("publicCourses");
+    const parsedPublicCourses = publicCourses ? JSON.parse(publicCourses) : [];
+    
+    // Update both the user's uploaded materials and the public courses
     const updatedMaterials = [...uploadedMaterials, newMaterial];
+    const updatedPublicCourses = [...parsedPublicCourses, newMaterial];
+    
     setUploadedMaterials(updatedMaterials);
     localStorage.setItem("uploadedMaterials", JSON.stringify(updatedMaterials));
+    localStorage.setItem("publicCourses", JSON.stringify(updatedPublicCourses));
     
-    toast.success("Materials uploaded successfully!");
+    toast.success("Materials uploaded successfully! Your course is now publicly available.");
     setTitle("");
     setDescription("");
     setFiles([]);
@@ -95,6 +108,11 @@ const UploadCourses = () => {
               <CardTitle>Upload Materials</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-2">
+                <Globe className="h-4 w-4" />
+                <span>All uploaded courses are public and visible to everyone</span>
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input 

@@ -16,6 +16,7 @@ import Schedule from "./pages/Schedule";
 import Messages from "./pages/Messages";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
+import PublicCourses from "./pages/PublicCourses";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
@@ -47,6 +48,7 @@ const App = () => (
               </GuestRoute>
             } />
             <Route path="/features" element={<Features />} />
+            <Route path="/public-courses" element={<PublicCourses />} />
             
             {/* Protected routes - require authentication */}
             <Route path="/dashboard" element={

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   User, 
@@ -10,18 +10,31 @@ import {
   Clock, 
   BookOpen, 
   Award,
-  BarChart2
+  BarChart2,
+  Edit,
+  Save
 } from "lucide-react";
+import { getUserData, updateUserData } from "@/lib/user-utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const StudentProfile = () => {
-  // Mock student data
-  const student = {
-    name: "John Smith",
-    id: "STU-2023-1234",
-    email: "john.smith@example.com",
+  const userData = getUserData();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    name: userData?.name || "John Smith",
+    email: userData?.email || "john.smith@example.com",
     phone: "+1 (123) 456-7890",
     dateOfBirth: "15 Sep 2005",
     address: "123 School Street, Education City, 12345",
+    bio: userData?.bio || "Student at SchoolEdge Academy",
+  });
+  
+  // Mock student data
+  const student = {
     grade: "11th Grade",
     class: "XI-A",
     rollNumber: "11A-23",
@@ -40,6 +53,22 @@ const StudentProfile = () => {
       "Honor Roll Student"
     ]
   };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    if (userData) {
+      updateUserData({
+        name: formData.name,
+        bio: formData.bio
+      });
+      toast.success("Profile updated successfully!");
+    }
+    setIsEditing(false);
+  };
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -50,12 +79,41 @@ const StudentProfile = () => {
           transition={{ duration: 0.5 }}
           className="glass-card p-6 rounded-xl"
         >
+          <div className="flex justify-end mb-2">
+            {isEditing ? (
+              <Button onClick={handleSaveProfile} size="sm" variant="outline">
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+            ) : (
+              <Button onClick={() => setIsEditing(true)} size="sm" variant="outline">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+          </div>
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="h-24 w-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-semibold mb-4">
-              {student.name.split(" ").map(n => n[0]).join("")}
-            </div>
-            <h2 className="text-xl font-bold">{student.name}</h2>
-            <p className="text-muted-foreground text-sm">{student.id}</p>
+            <Avatar className="h-24 w-24 mb-4">
+              <AvatarImage src={userData?.profilePicture} />
+              <AvatarFallback className="bg-primary text-white text-3xl">
+                {formData.name.split(" ").map(n => n[0]).join("")}
+              </AvatarFallback>
+            </Avatar>
+            
+            {isEditing ? (
+              <Input 
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="text-center font-bold mb-1"
+              />
+            ) : (
+              <h2 className="text-xl font-bold">{formData.name}</h2>
+            )}
+            
+            <p className="text-muted-foreground text-sm">
+              {userData?.id || "STU-2023-1234"}
+            </p>
             <div className="inline-flex px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mt-2">
               {student.grade}
             </div>
@@ -64,23 +122,37 @@ const StudentProfile = () => {
           <div className="space-y-4 border-t border-border pt-4">
             <div className="flex items-center">
               <Mail className="h-4 w-4 text-muted-foreground mr-3" />
-              <div className="text-sm">{student.email}</div>
+              <div className="text-sm">{formData.email}</div>
             </div>
             
             <div className="flex items-center">
               <Phone className="h-4 w-4 text-muted-foreground mr-3" />
-              <div className="text-sm">{student.phone}</div>
+              <div className="text-sm">{formData.phone}</div>
             </div>
             
             <div className="flex items-center">
               <Calendar className="h-4 w-4 text-muted-foreground mr-3" />
-              <div className="text-sm">{student.dateOfBirth}</div>
+              <div className="text-sm">{formData.dateOfBirth}</div>
             </div>
             
             <div className="flex items-center">
               <MapPin className="h-4 w-4 text-muted-foreground mr-3" />
-              <div className="text-sm">{student.address}</div>
+              <div className="text-sm">{formData.address}</div>
             </div>
+          </div>
+          
+          <div className="mt-6 border-t border-border pt-4">
+            <h3 className="font-semibold mb-3">Bio</h3>
+            {isEditing ? (
+              <Textarea 
+                name="bio"
+                value={formData.bio}
+                onChange={handleInputChange}
+                className="min-h-[100px]"
+              />
+            ) : (
+              <p className="text-sm">{formData.bio}</p>
+            )}
           </div>
           
           <div className="mt-6 border-t border-border pt-4">

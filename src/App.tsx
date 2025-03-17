@@ -11,6 +11,11 @@ import AuthForm from "./components/auth/AuthForm";
 import Features from "./pages/Features";
 import Notes from "./pages/Notes";
 import UploadCourses from "./pages/UploadCourses";
+import Courses from "./pages/Courses";
+import Schedule from "./pages/Schedule";
+import Messages from "./pages/Messages";
+import Notifications from "./pages/Notifications";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +33,11 @@ const App = () => (
           <Route path="/features" element={<Features />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/upload-courses" element={<UploadCourses />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -15,16 +15,21 @@ import {
   BarChart2,
   AlertTriangle,
   FileText,
-  Upload
+  Upload,
+  Notebook,
+  Send,
+  UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import Stats from "@/components/dashboard/Stats";
 import StudentProfile from "@/components/dashboard/StudentProfile";
+import { getUserData } from "@/lib/user-utils";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const userData = getUserData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   
@@ -65,43 +70,43 @@ const Dashboard = () => {
               Profile
             </Button>
             <Button 
-              variant={activeTab === "courses" ? "default" : "ghost"} 
+              variant="ghost" 
               className="w-full justify-start"
-              onClick={() => setActiveTab("courses")}
+              onClick={() => navigate("/courses")}
             >
               <BookOpen className="h-5 w-5 mr-3" />
               Courses
             </Button>
             <Button 
-              variant={activeTab === "schedule" ? "default" : "ghost"} 
+              variant="ghost" 
               className="w-full justify-start"
-              onClick={() => setActiveTab("schedule")}
+              onClick={() => navigate("/schedule")}
             >
               <Calendar className="h-5 w-5 mr-3" />
               Schedule
             </Button>
             <Button 
-              variant={activeTab === "messages" ? "default" : "ghost"} 
+              variant="ghost" 
               className="w-full justify-start"
-              onClick={() => setActiveTab("messages")}
+              onClick={() => navigate("/messages")}
             >
               <MessageCircle className="h-5 w-5 mr-3" />
               Messages
             </Button>
             <Button 
-              variant={activeTab === "notifications" ? "default" : "ghost"} 
+              variant="ghost" 
               className="w-full justify-start"
-              onClick={() => setActiveTab("notifications")}
+              onClick={() => navigate("/notifications")}
             >
               <Bell className="h-5 w-5 mr-3" />
               Notifications
             </Button>
             <Button 
-              variant={activeTab === "settings" ? "default" : "ghost"} 
+              variant="ghost" 
               className="w-full justify-start"
-              onClick={() => setActiveTab("settings")}
+              onClick={() => navigate("/settings")}
             >
-              <Settings className="h-5 w-5 mr-3" />
+              <UserCog className="h-5 w-5 mr-3" />
               Settings
             </Button>
             <Button 
@@ -109,7 +114,7 @@ const Dashboard = () => {
               className="w-full justify-start"
               onClick={() => navigate("/notes")}
             >
-              <FileText className="h-5 w-5 mr-3" />
+              <Notebook className="h-5 w-5 mr-3" />
               My Notes
             </Button>
             <Button 
@@ -159,17 +164,27 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => navigate("/notifications")}
+              >
                 <Bell className="h-5 w-5" />
               </Button>
               
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white">
-                  <span className="font-medium text-sm">JS</span>
+                  <span className="font-medium text-sm">
+                    {userData?.name ? userData.name.split(" ").map(n => n[0]).join("") : "JS"}
+                  </span>
                 </div>
                 <div className="hidden md:block">
-                  <div className="text-sm font-medium">John Smith</div>
-                  <div className="text-xs text-muted-foreground">Student</div>
+                  <div className="text-sm font-medium">
+                    {userData?.name || "John Smith"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {userData?.role || "Student"}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Mail, Lock, UserCircle, Eye, EyeOff } from "lucide-react";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { saveUserData } from "@/lib/user-utils";
+import { useAuth } from "@/context/AuthContext";
 
 type AuthFormProps = {
   type: "login" | "register";
@@ -14,6 +15,7 @@ type AuthFormProps = {
 
 const AuthForm = ({ type }: AuthFormProps) => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -22,6 +24,13 @@ const AuthForm = ({ type }: AuthFormProps) => {
     password: "",
     role: "student",
   });
+
+  // Effect to redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -37,27 +46,39 @@ const AuthForm = ({ type }: AuthFormProps) => {
       setLoading(false);
       
       if (type === "login") {
-        // Save user data to localStorage when logging in
-        saveUserData({
+        // Create user data for login
+        const userData = {
           id: Math.random().toString(36).substr(2, 9),
           name: formData.email.split('@')[0], // Use part of the email as name for login
           email: formData.email,
-          role: 'student', // Default role for login
-        });
+          role: 'student' as 'student' | 'teacher', // Default role for login
+        };
+        
+        // Save user data to localStorage when logging in
+        saveUserData(userData);
+        
+        // Update auth context
+        login(userData);
         
         toast.success("Successfully logged in!");
         navigate("/dashboard");
       } else {
-        // Save user data to localStorage when registering
-        saveUserData({
+        // Create user data for registration
+        const userData = {
           id: Math.random().toString(36).substr(2, 9),
           name: formData.name,
           email: formData.email,
           role: formData.role as 'student' | 'teacher',
-        });
+        };
+        
+        // Save user data to localStorage when registering
+        saveUserData(userData);
+        
+        // Update auth context
+        login(userData);
         
         toast.success("Account created successfully!");
-        navigate("/dashboard"); // Navigate directly to dashboard instead of login
+        navigate("/dashboard");
       }
     }, 1500);
   };

@@ -1,17 +1,23 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserData, UserData } from '@/lib/user-utils';
+import { getUserData, UserData, clearUserData } from '@/lib/user-utils';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: UserData | null;
   isAuthenticated: boolean;
   loading: boolean;
+  login: (userData: UserData) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   loading: true,
+  login: () => {},
+  logout: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -21,9 +27,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check if user data exists in localStorage
     const userData = getUserData();
-    setUser(userData);
+    if (userData) {
+      setUser(userData);
+    }
     setLoading(false);
   }, []);
+
+  const login = (userData: UserData) => {
+    setUser(userData);
+  };
+
+  const logout = () => {
+    clearUserData();
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider
@@ -31,6 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         loading,
+        login,
+        logout
       }}
     >
       {children}

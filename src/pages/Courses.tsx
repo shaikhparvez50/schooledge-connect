@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, FileText, Film, Image, Plus, Search } from "lucide-react";
@@ -9,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getUserData } from "@/lib/user-utils";
+import CourseDetailModal from "@/components/courses/CourseDetailModal";
 
 const Courses = () => {
   const navigate = useNavigate();
@@ -21,6 +23,8 @@ const Courses = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [allCourses, setAllCourses] = useState<any[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   useEffect(() => {
     const mockCourses = [
@@ -31,6 +35,7 @@ const Courses = () => {
         thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb",
         type: "video",
         date: "2023-05-15",
+        description: "A comprehensive introduction to basic mathematical concepts and principles."
       },
       {
         id: "course-2",
@@ -39,6 +44,7 @@ const Courses = () => {
         thumbnail: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa",
         type: "document",
         date: "2023-06-22",
+        description: "An in-depth exploration of complex physics theories and applications."
       },
       {
         id: "course-3",
@@ -47,6 +53,7 @@ const Courses = () => {
         thumbnail: "https://images.unsplash.com/photo-1491841651911-c44c30c34548",
         type: "image",
         date: "2023-07-10",
+        description: "Methods and approaches for analyzing literary works across different genres and periods."
       },
     ];
     
@@ -70,6 +77,7 @@ const Courses = () => {
         thumbnail: course.files && course.files.length > 0 ? course.files[0].url : "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa",
         type,
         date: new Date(course.createdAt).toISOString().split("T")[0],
+        description: course.description || ""
       };
     });
     
@@ -117,6 +125,7 @@ const Courses = () => {
       thumbnail: URL.createObjectURL(selectedFile),
       type: uploadType === "video" ? "video" : uploadType === "document" ? "document" : "image",
       date: new Date().toISOString().split("T")[0],
+      description
     };
 
     const updatedCourses = [newCourse, ...allCourses];
@@ -148,6 +157,11 @@ const Courses = () => {
     setUploadType(null);
     
     toast.success("Course material uploaded successfully!");
+  };
+
+  const handleCourseClick = (course: any) => {
+    setSelectedCourse(course);
+    setDetailDialogOpen(true);
   };
 
   return (
@@ -274,7 +288,11 @@ const Courses = () => {
         <TabsContent value="all" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.map((course) => (
-              <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card 
+                key={course.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleCourseClick(course)}
+              >
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
@@ -301,7 +319,11 @@ const Courses = () => {
         <TabsContent value="videos" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.filter(c => c.type === "video").map((course) => (
-              <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card 
+                key={course.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleCourseClick(course)}
+              >
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
@@ -326,7 +348,11 @@ const Courses = () => {
         <TabsContent value="documents" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.filter(c => c.type === "document").map((course) => (
-              <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card 
+                key={course.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleCourseClick(course)}
+              >
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
@@ -351,7 +377,11 @@ const Courses = () => {
         <TabsContent value="images" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.filter(c => c.type === "image").map((course) => (
-              <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card 
+                key={course.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleCourseClick(course)}
+              >
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
@@ -373,6 +403,12 @@ const Courses = () => {
           </div>
         </TabsContent>
       </Tabs>
+      
+      <CourseDetailModal 
+        open={detailDialogOpen} 
+        onOpenChange={setDetailDialogOpen} 
+        course={selectedCourse} 
+      />
     </div>
   );
 };

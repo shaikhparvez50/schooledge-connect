@@ -173,3 +173,68 @@ export async function getAttendanceCount(userId: string) {
     return { error: "Failed to get attendance count" };
   }
 }
+
+// New functions for course notes
+export async function getCourseNotes(courseId: string) {
+  try {
+    const notes = getLocalData('course_notes', []);
+    return { notes: notes.filter((note: any) => note.courseId === courseId) };
+  } catch (e) {
+    console.error("Error fetching course notes:", e);
+    return { error: "Failed to fetch course notes" };
+  }
+}
+
+export async function saveCourseNote(noteData: {
+  courseId: string;
+  userId: string;
+  content: string;
+  title?: string;
+}) {
+  try {
+    const notes = getLocalData('course_notes', []);
+    const newNote = {
+      ...noteData,
+      id: `note-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    notes.push(newNote);
+    saveLocalData('course_notes', notes);
+    return { success: true, noteId: newNote.id };
+  } catch (e) {
+    console.error("Error saving course note:", e);
+    return { error: "Failed to save course note" };
+  }
+}
+
+export async function updateCourseNote(noteId: string, content: string) {
+  try {
+    const notes = getLocalData('course_notes', []);
+    const updatedNotes = notes.map((note: any) => 
+      note.id === noteId 
+        ? { ...note, content, updatedAt: new Date().toISOString() } 
+        : note
+    );
+    
+    saveLocalData('course_notes', updatedNotes);
+    return { success: true };
+  } catch (e) {
+    console.error("Error updating course note:", e);
+    return { error: "Failed to update course note" };
+  }
+}
+
+export async function deleteCourseNote(noteId: string) {
+  try {
+    const notes = getLocalData('course_notes', []);
+    const filteredNotes = notes.filter((note: any) => note.id !== noteId);
+    
+    saveLocalData('course_notes', filteredNotes);
+    return { success: true };
+  } catch (e) {
+    console.error("Error deleting course note:", e);
+    return { error: "Failed to delete course note" };
+  }
+}

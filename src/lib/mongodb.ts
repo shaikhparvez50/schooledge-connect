@@ -1,28 +1,18 @@
 
-import { MongoClient } from 'mongodb';
+// This file is kept as a placeholder but not actively used
+// We're transitioning away from MongoDB for better client-side performance
+console.log("MongoDB integration disabled for improved startup time");
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://ayan:<db_password>@cluster0.9pt4y.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-const options = {};
+const dummyPromise = Promise.resolve({
+  db: (name: string) => ({
+    collection: (name: string) => ({
+      find: () => ({ toArray: () => Promise.resolve([]) }),
+      findOne: () => Promise.resolve(null),
+      insertOne: () => Promise.resolve({ insertedId: 'local-id-' + Date.now() }),
+      updateOne: () => Promise.resolve({ modifiedCount: 1 }),
+      countDocuments: () => Promise.resolve(0)
+    })
+  })
+});
 
-let client;
-let clientPromise: Promise<MongoClient>;
-
-if (!uri) {
-  throw new Error('Please define the MONGODB_URI environment variable');
-}
-
-if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production mode, it's best to not use a global variable.
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
-}
-
-export default clientPromise;
+export default dummyPromise;

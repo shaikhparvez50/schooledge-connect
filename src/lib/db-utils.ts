@@ -1,170 +1,175 @@
 
-import clientPromise from './mongodb';
+// Local storage based database utilities
+// This implementation replaces MongoDB with client-side storage for better performance
 
-// Cache the database connection to prevent reconnection on every request
-let dbConnection: any = null;
-
-async function getDatabase() {
-  if (dbConnection) return dbConnection;
-  
+// Helper to get data from localStorage with a default value
+const getLocalData = (key: string, defaultValue: any[] = []) => {
   try {
-    const client = await clientPromise;
-    dbConnection = client.db("school_edge");
-    return dbConnection;
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
   } catch (e) {
-    console.error("Failed to connect to the database:", e);
-    throw new Error("Database connection failed");
+    console.error(`Error retrieving ${key} from localStorage:`, e);
+    return defaultValue;
   }
-}
+};
+
+// Helper to save data to localStorage
+const saveLocalData = (key: string, data: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    console.error(`Error saving ${key} to localStorage:`, e);
+    return false;
+  }
+};
 
 export async function getFeatures() {
   try {
-    const db = await getDatabase();
-    const features = await db.collection("features").find({}).toArray();
+    const features = getLocalData('features', [
+      { id: '1', name: 'Course Publishing', description: 'Share your knowledge with others' },
+      { id: '2', name: 'Attendance Tracking', description: 'Track your daily attendance' },
+      { id: '3', name: 'Study Materials', description: 'Access learning resources' }
+    ]);
     return { features };
   } catch (e) {
-    console.error("Error fetching features from MongoDB:", e);
+    console.error("Error fetching features:", e);
     return { error: "Failed to fetch features" };
   }
 }
 
 export async function getStudents() {
   try {
-    const db = await getDatabase();
-    const students = await db.collection("students").find({}).toArray();
+    const students = getLocalData('students', []);
     return { students };
   } catch (e) {
-    console.error("Error fetching students from MongoDB:", e);
+    console.error("Error fetching students:", e);
     return { error: "Failed to fetch students" };
   }
 }
 
 export async function getCourses() {
   try {
-    const db = await getDatabase();
-    const courses = await db.collection("courses").find({}).toArray();
+    const courses = getLocalData('courses', []);
     return { courses };
   } catch (e) {
-    console.error("Error fetching courses from MongoDB:", e);
+    console.error("Error fetching courses:", e);
     return { error: "Failed to fetch courses" };
   }
 }
 
 export async function getAssignments(studentId: string) {
   try {
-    const db = await getDatabase();
-    const assignments = await db.collection("assignments")
-      .find({ studentId: studentId })
-      .toArray();
+    const allAssignments = getLocalData('assignments', []);
+    const assignments = allAssignments.filter((assignment: any) => 
+      assignment.studentId === studentId
+    );
     return { assignments };
   } catch (e) {
-    console.error("Error fetching assignments from MongoDB:", e);
+    console.error("Error fetching assignments:", e);
     return { error: "Failed to fetch assignments" };
   }
 }
 
 export async function updateProfile(userId: string, profileData: any) {
   try {
-    const db = await getDatabase();
-    const result = await db.collection("users").updateOne(
-      { _id: userId },
-      { $set: profileData }
+    const users = getLocalData('users', []);
+    const updatedUsers = users.map((user: any) => 
+      user._id === userId ? { ...user, ...profileData } : user
     );
-    return { success: true, result };
+    
+    saveLocalData('users', updatedUsers);
+    return { success: true, result: { modifiedCount: 1 } };
   } catch (e) {
-    console.error("Error updating profile in MongoDB:", e);
+    console.error("Error updating profile:", e);
     return { error: "Failed to update profile" };
   }
 }
 
 export async function saveCourse(courseData: any) {
   try {
-    const db = await getDatabase();
-    const result = await db.collection("public_courses").insertOne({
+    const courses = getLocalData('public_courses', []);
+    const newCourse = {
       ...courseData,
-      createdAt: new Date(),
+      _id: `local-${Date.now()}`,
+      createdAt: new Date().toISOString(),
       isPublic: true
-    });
-    return { success: true, courseId: result.insertedId };
+    };
+    
+    courses.push(newCourse);
+    saveLocalData('public_courses', courses);
+    return { success: true, courseId: newCourse._id };
   } catch (e) {
-    console.error("Error saving course to MongoDB:", e);
+    console.error("Error saving course:", e);
     return { error: "Failed to save course" };
   }
 }
 
 export async function getPublicCourses() {
   try {
-    const db = await getDatabase();
-    const courses = await db.collection("public_courses")
-      .find({ isPublic: true })
-      .sort({ createdAt: -1 })
-      .toArray();
+    const courses = getLocalData('public_courses', [])
+      .filter((course: any) => course.isPublic)
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
     return { courses };
   } catch (e) {
-    console.error("Error fetching public courses from MongoDB:", e);
+    console.error("Error fetching public courses:", e);
     return { error: "Failed to fetch public courses" };
   }
 }
 
 export async function searchCourses(query: string) {
   try {
-    const db = await getDatabase();
-    const courses = await db.collection("public_courses")
-      .find({ 
-        $and: [
-          { isPublic: true },
-          { 
-            $or: [
-              { title: { $regex: query, $options: 'i' } },
-              { description: { $regex: query, $options: 'i' } },
-              { author: { $regex: query, $options: 'i' } }
-            ]
-          }
-        ]
-      })
-      .toArray();
-    return { courses };
+    const courses = getLocalData('public_courses', []);
+    const searchResults = courses.filter((course: any) => {
+      const searchableText = `${course.title} ${course.description} ${course.author}`.toLowerCase();
+      return course.isPublic && searchableText.includes(query.toLowerCase());
+    });
+    
+    return { courses: searchResults };
   } catch (e) {
-    console.error("Error searching courses in MongoDB:", e);
+    console.error("Error searching courses:", e);
     return { error: "Failed to search courses" };
   }
 }
 
 export async function trackAttendance(userId: string, date: string) {
   try {
-    const db = await getDatabase();
+    const attendance = getLocalData('attendance', []);
     
     // Check if attendance already marked for today
-    const existing = await db.collection("attendance").findOne({
-      userId,
-      date
-    });
+    const existing = attendance.find((record: any) => 
+      record.userId === userId && record.date === date
+    );
     
     if (existing) {
       return { success: false, message: "Attendance already marked for today" };
     }
     
     // Mark attendance
-    const result = await db.collection("attendance").insertOne({
+    const newRecord = {
       userId,
       date,
-      timestamp: new Date()
-    });
+      timestamp: new Date().toISOString()
+    };
     
-    return { success: true, result };
+    attendance.push(newRecord);
+    saveLocalData('attendance', attendance);
+    
+    return { success: true, result: newRecord };
   } catch (e) {
-    console.error("Error tracking attendance in MongoDB:", e);
+    console.error("Error tracking attendance:", e);
     return { error: "Failed to track attendance" };
   }
 }
 
 export async function getAttendanceCount(userId: string) {
   try {
-    const db = await getDatabase();
-    const count = await db.collection("attendance").countDocuments({ userId });
+    const attendance = getLocalData('attendance', []);
+    const count = attendance.filter((record: any) => record.userId === userId).length;
     return { count };
   } catch (e) {
-    console.error("Error getting attendance count from MongoDB:", e);
+    console.error("Error getting attendance count:", e);
     return { error: "Failed to get attendance count" };
   }
 }

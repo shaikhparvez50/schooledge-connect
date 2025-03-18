@@ -14,14 +14,27 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'], // Pre-bundle commonly used dependencies
-    exclude: [], // Add any dependencies that should not be pre-bundled
+    include: ['react', 'react-dom', 'react-router-dom', 'lodash'], // Pre-bundle commonly used dependencies
+    exclude: ['mongodb'], // Exclude server-side packages
   },
   build: {
     target: 'esnext', // Modern browsers for better performance
     minify: 'terser',
     cssCodeSplit: true,
     sourcemap: mode === 'development',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast'
+          ]
+        }
+      }
+    }
   },
   plugins: [
     react(),

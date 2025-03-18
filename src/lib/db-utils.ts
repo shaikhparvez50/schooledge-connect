@@ -1,10 +1,25 @@
 
 import clientPromise from './mongodb';
 
-export async function getFeatures() {
+// Cache the database connection to prevent reconnection on every request
+let dbConnection: any = null;
+
+async function getDatabase() {
+  if (dbConnection) return dbConnection;
+  
   try {
     const client = await clientPromise;
-    const db = client.db("school_edge");
+    dbConnection = client.db("school_edge");
+    return dbConnection;
+  } catch (e) {
+    console.error("Failed to connect to the database:", e);
+    throw new Error("Database connection failed");
+  }
+}
+
+export async function getFeatures() {
+  try {
+    const db = await getDatabase();
     const features = await db.collection("features").find({}).toArray();
     return { features };
   } catch (e) {
@@ -15,8 +30,7 @@ export async function getFeatures() {
 
 export async function getStudents() {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const students = await db.collection("students").find({}).toArray();
     return { students };
   } catch (e) {
@@ -27,8 +41,7 @@ export async function getStudents() {
 
 export async function getCourses() {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const courses = await db.collection("courses").find({}).toArray();
     return { courses };
   } catch (e) {
@@ -39,8 +52,7 @@ export async function getCourses() {
 
 export async function getAssignments(studentId: string) {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const assignments = await db.collection("assignments")
       .find({ studentId: studentId })
       .toArray();
@@ -53,8 +65,7 @@ export async function getAssignments(studentId: string) {
 
 export async function updateProfile(userId: string, profileData: any) {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const result = await db.collection("users").updateOne(
       { _id: userId },
       { $set: profileData }
@@ -68,8 +79,7 @@ export async function updateProfile(userId: string, profileData: any) {
 
 export async function saveCourse(courseData: any) {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const result = await db.collection("public_courses").insertOne({
       ...courseData,
       createdAt: new Date(),
@@ -84,8 +94,7 @@ export async function saveCourse(courseData: any) {
 
 export async function getPublicCourses() {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const courses = await db.collection("public_courses")
       .find({ isPublic: true })
       .sort({ createdAt: -1 })
@@ -99,8 +108,7 @@ export async function getPublicCourses() {
 
 export async function searchCourses(query: string) {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const courses = await db.collection("public_courses")
       .find({ 
         $and: [
@@ -124,8 +132,7 @@ export async function searchCourses(query: string) {
 
 export async function trackAttendance(userId: string, date: string) {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     
     // Check if attendance already marked for today
     const existing = await db.collection("attendance").findOne({
@@ -153,8 +160,7 @@ export async function trackAttendance(userId: string, date: string) {
 
 export async function getAttendanceCount(userId: string) {
   try {
-    const client = await clientPromise;
-    const db = client.db("school_edge");
+    const db = await getDatabase();
     const count = await db.collection("attendance").countDocuments({ userId });
     return { count };
   } catch (e) {

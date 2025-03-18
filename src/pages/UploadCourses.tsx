@@ -1,21 +1,19 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, Image, File, X, Globe, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Image, File, X, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { saveCourse } from "@/lib/db-utils";
 
 const UploadCourses = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const [uploadedMaterials, setUploadedMaterials] = useState(() => {
     const saved = localStorage.getItem("uploadedMaterials");
     return saved ? JSON.parse(saved) : [];
@@ -42,7 +40,7 @@ const UploadCourses = () => {
     }
   };
   
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!title.trim()) {
       toast.error("Please add a title for your upload");
       return;
@@ -53,65 +51,44 @@ const UploadCourses = () => {
       return;
     }
     
-    setUploading(true);
+    // In a real app, we would upload the files to a server
+    // Here we'll just simulate it by saving metadata
+    const fileInfo = files.map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: URL.createObjectURL(file) // This creates a temporary URL for preview
+    }));
     
-    try {
-      // In a real app, we would upload the files to a server
-      // Here we'll just simulate it by saving metadata
-      const fileInfo = files.map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file) // This creates a temporary URL for preview
-      }));
-      
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      
-      const newMaterial = {
-        id: Date.now(),
-        title,
-        description,
-        files: fileInfo,
-        createdAt: new Date().toISOString(),
-        author: userData.name || 'Anonymous',
-        authorId: userData.id || 'unknown',
-        isPublic: true
-      };
-      
-      // Save to local storage for now
-      const updatedMaterials = [...uploadedMaterials, newMaterial];
-      setUploadedMaterials(updatedMaterials);
-      localStorage.setItem("uploadedMaterials", JSON.stringify(updatedMaterials));
-      
-      // Save to public courses
-      const publicCourses = JSON.parse(localStorage.getItem("publicCourses") || "[]");
-      localStorage.setItem("publicCourses", JSON.stringify([...publicCourses, newMaterial]));
-      
-      // Also save to MongoDB (in a real app this would use FormData for file uploads)
-      const result = await saveCourse({
-        title,
-        description,
-        author: userData.name || 'Anonymous',
-        authorId: userData.id || 'unknown',
-        fileCount: files.length,
-        fileTypes: files.map(file => file.type)
-      });
-      
-      if (result.error) {
-        console.error("MongoDB save error:", result.error);
-        // Still continue since we saved to localStorage as fallback
-      }
-      
-      toast.success("Materials uploaded successfully! Your course is now publicly available.");
-      setTitle("");
-      setDescription("");
-      setFiles([]);
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("There was an error uploading your materials. Please try again.");
-    } finally {
-      setUploading(false);
-    }
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
+    const newMaterial = {
+      id: Date.now(),
+      title,
+      description,
+      files: fileInfo,
+      createdAt: new Date().toISOString(),
+      author: userData.name || 'Anonymous',
+      authorId: userData.id || 'unknown',
+      isPublic: true // Making sure all courses are public
+    };
+    
+    // Get all public courses
+    const publicCourses = localStorage.getItem("publicCourses");
+    const parsedPublicCourses = publicCourses ? JSON.parse(publicCourses) : [];
+    
+    // Update both the user's uploaded materials and the public courses
+    const updatedMaterials = [...uploadedMaterials, newMaterial];
+    const updatedPublicCourses = [...parsedPublicCourses, newMaterial];
+    
+    setUploadedMaterials(updatedMaterials);
+    localStorage.setItem("uploadedMaterials", JSON.stringify(updatedMaterials));
+    localStorage.setItem("publicCourses", JSON.stringify(updatedPublicCourses));
+    
+    toast.success("Materials uploaded successfully! Your course is now publicly available.");
+    setTitle("");
+    setDescription("");
+    setFiles([]);
   };
   
   return (
@@ -190,21 +167,9 @@ const UploadCourses = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
-                onClick={handleUpload} 
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Materials
-                  </>
-                )}
+              <Button onClick={handleUpload}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Materials
               </Button>
             </CardFooter>
           </Card>

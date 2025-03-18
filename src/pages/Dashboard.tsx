@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   User, 
@@ -18,8 +18,7 @@ import {
   Upload,
   Notebook,
   Send,
-  UserCog,
-  CheckSquare
+  UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,64 +32,10 @@ const Dashboard = () => {
   const userData = getUserData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const [attendanceCount, setAttendanceCount] = useState(() => {
-    const saved = localStorage.getItem("attendanceCount");
-    return saved ? JSON.parse(saved) : 0;
-  });
-  const [lastAttendanceDate, setLastAttendanceDate] = useState(() => {
-    const saved = localStorage.getItem("lastAttendanceDate");
-    return saved || "";
-  });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
   
-  const markAttendance = () => {
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (lastAttendanceDate === today) {
-      toast.error("Attendance already marked for today!");
-      return;
-    }
-    
-    const newCount = attendanceCount + 1;
-    setAttendanceCount(newCount);
-    setLastAttendanceDate(today);
-    
-    localStorage.setItem("attendanceCount", JSON.stringify(newCount));
-    localStorage.setItem("lastAttendanceDate", today);
-    
-    toast.success("Attendance marked successfully!");
-  };
-
-  const handleProfileClick = () => {
-    navigate("/settings");
-  };
-
   const handleLogout = () => {
     toast.success("Logged out successfully!");
     navigate("/");
-  };
-
-  const handleSearch = async (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    
-    if (!query.trim()) {
-      setShowSearchResults(false);
-      return;
-    }
-    
-    // Get courses from localStorage for searching
-    const publicCourses = JSON.parse(localStorage.getItem("publicCourses") || "[]");
-    
-    const filteredResults = publicCourses.filter(course => 
-      course.title.toLowerCase().includes(query.toLowerCase()) || 
-      course.description?.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    setSearchResults(filteredResults);
-    setShowSearchResults(true);
   };
   
   return (
@@ -212,50 +157,13 @@ const Dashboard = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search courses..."
+                  placeholder="Search..."
                   className="pl-9 w-full md:w-72"
-                  value={searchQuery}
-                  onChange={handleSearch}
                 />
-                
-                {showSearchResults && searchQuery && (
-                  <div className="absolute mt-1 w-full bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                    {searchResults.length === 0 ? (
-                      <div className="p-2 text-muted-foreground">No courses found</div>
-                    ) : (
-                      <div>
-                        <div className="p-2 border-b border-border">
-                          <span className="text-sm font-semibold">Search Results</span>
-                        </div>
-                        {searchResults.map((course) => (
-                          <div 
-                            key={course.id} 
-                            className="p-2 hover:bg-accent cursor-pointer"
-                            onClick={() => navigate("/courses")}
-                          >
-                            <div className="font-medium">{course.title}</div>
-                            {course.description && (
-                              <div className="text-sm text-muted-foreground truncate">{course.description}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
             
             <div className="flex items-center gap-4">
-              <Button 
-                variant="outline"
-                onClick={markAttendance}
-                className="hidden md:flex"
-              >
-                <CheckSquare className="h-5 w-5 mr-2" />
-                Mark Attendance
-              </Button>
-              
               <Button 
                 variant="ghost" 
                 size="icon"
@@ -264,10 +172,7 @@ const Dashboard = () => {
                 <Bell className="h-5 w-5" />
               </Button>
               
-              <div 
-                className="flex items-center gap-3 cursor-pointer" 
-                onClick={handleProfileClick}
-              >
+              <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white">
                   <span className="font-medium text-sm">
                     {userData?.name ? userData.name.split(" ").map(n => n[0]).join("") : "JS"}
@@ -290,25 +195,15 @@ const Dashboard = () => {
         <main className="p-6">
           {activeTab === "overview" && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-display font-bold">Dashboard</h1>
-                <Button 
-                  variant="outline"
-                  onClick={markAttendance}
-                  className="md:hidden"
-                >
-                  <CheckSquare className="h-5 w-5 mr-2" />
-                  Mark Attendance
-                </Button>
-              </div>
+              <h1 className="text-2xl font-display font-bold">Dashboard</h1>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Stats
                   title="Attendance"
-                  value={`${attendanceCount}`}
-                  change={"+1"}
+                  value="95%"
+                  change="+2.5%"
                   trend="up"
-                  description={`Last marked: ${lastAttendanceDate || 'Never'}`}
+                  description="From last month"
                   icon={<Calendar className="h-5 w-5" />}
                 />
                 

@@ -3,7 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+@base {
   :root {
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
@@ -167,4 +169,4 @@
 }
 
 /* Font Setup */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
+

@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, Image, File, X, Globe, Loader2, Eye } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Image, File, X, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { saveCourse } from "@/lib/db-utils";
-import MaterialDetailModal from "@/components/uploads/MaterialDetailModal";
 
 const UploadCourses = () => {
   const navigate = useNavigate();
@@ -21,8 +20,6 @@ const UploadCourses = () => {
     const saved = localStorage.getItem("uploadedMaterials");
     return saved ? JSON.parse(saved) : [];
   });
-  const [selectedMaterial, setSelectedMaterial] = useState(null);
-  const [isMaterialDetailOpen, setIsMaterialDetailOpen] = useState(false);
   
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -43,11 +40,6 @@ const UploadCourses = () => {
       default:
         return <File className="h-4 w-4" />;
     }
-  };
-
-  const handleViewMaterial = (material) => {
-    setSelectedMaterial(material);
-    setIsMaterialDetailOpen(true);
   };
   
   const handleUpload = async () => {
@@ -226,26 +218,11 @@ const UploadCourses = () => {
             </Card>
           ) : (
             uploadedMaterials.slice(0, 5).map((material) => (
-              <Card key={material.id} className="p-4 cursor-pointer hover:bg-accent/20 transition-colors" onClick={() => handleViewMaterial(material)}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium truncate">{material.title}</h3>
-                    {material.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{material.description}</p>
-                    )}
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-muted-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewMaterial(material);
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </div>
+              <Card key={material.id} className="p-4">
+                <h3 className="font-medium truncate">{material.title}</h3>
+                {material.description && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{material.description}</p>
+                )}
                 <div className="mt-2">
                   <p className="text-xs text-muted-foreground">
                     {material.files.length} file(s) • {new Date(material.createdAt).toLocaleDateString()}
@@ -256,12 +233,6 @@ const UploadCourses = () => {
           )}
         </div>
       </div>
-
-      <MaterialDetailModal
-        material={selectedMaterial}
-        isOpen={isMaterialDetailOpen}
-        onClose={() => setIsMaterialDetailOpen(false)}
-      />
     </div>
   );
 };

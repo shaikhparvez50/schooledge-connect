@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -43,10 +44,8 @@ const Settings = () => {
   const navigate = useNavigate();
   const userData = getUserData();
   const isMobile = useIsMobile();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeSection, setActiveSection] = useState("profile");
-  const [profileImage, setProfileImage] = useState(userData?.profilePicture || "");
   
   const [profileForm, setProfileForm] = useState({
     name: userData?.name || "John Smith",
@@ -82,26 +81,9 @@ const Settings = () => {
         name: profileForm.name,
         email: profileForm.email,
         bio: profileForm.bio,
-        profilePicture: profileImage
       });
     }
     toast.success("Profile settings saved");
-  };
-  
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const imageDataUrl = reader.result as string;
-        setProfileImage(imageDataUrl);
-      };
-      reader.readAsDataURL(file);
-    }
   };
   
   const handleNotificationToggle = (setting: string) => {
@@ -117,13 +99,16 @@ const Settings = () => {
     navigate("/");
   };
   
+  // Switch sections on small screens
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
+    // Auto-scroll to top when changing sections on mobile
     if (isMobile) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
+  // Render the active section content for mobile view
   const renderActiveSection = () => {
     switch(activeSection) {
       case "profile":
@@ -137,6 +122,7 @@ const Settings = () => {
     }
   };
   
+  // Profile section content
   const renderProfileSection = () => (
     <Card className="w-full">
       <CardHeader>
@@ -146,33 +132,6 @@ const Settings = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col items-center mb-6">
-          <div className="relative">
-            <Avatar className="h-24 w-24 mb-2 cursor-pointer" onClick={handleImageClick}>
-              <AvatarImage src={profileImage} />
-              <AvatarFallback className="bg-primary text-white text-3xl">
-                {profileForm.name.split(" ").map(n => n[0]).join("")}
-              </AvatarFallback>
-            </Avatar>
-            <div 
-              className="absolute bottom-2 right-0 bg-primary rounded-full p-1 cursor-pointer"
-              onClick={handleImageClick}
-            >
-              <Upload className="h-4 w-4 text-white" />
-            </div>
-            <input 
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-          </div>
-          <Button variant="link" className="p-0 h-auto text-sm" onClick={handleImageClick}>
-            Change profile picture
-          </Button>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
@@ -222,6 +181,7 @@ const Settings = () => {
     </Card>
   );
   
+  // Notifications section content
   const renderNotificationsSection = () => (
     <Card className="w-full">
       <CardHeader>
@@ -285,6 +245,7 @@ const Settings = () => {
     </Card>
   );
   
+  // Appearance section content
   const renderAppearanceSection = () => (
     <Card className="w-full">
       <CardHeader>
@@ -403,9 +364,10 @@ const Settings = () => {
           Back
         </Button>
         <h1 className="text-xl md:text-2xl font-bold">Settings</h1>
-        <div className="w-10"></div>
+        <div className="w-10"></div> {/* Empty div for flex spacing */}
       </div>
       
+      {/* Mobile Tab Navigation */}
       {isMobile && (
         <div className="flex mb-4 overflow-x-auto pb-2 no-scrollbar">
           <Button 
@@ -436,6 +398,7 @@ const Settings = () => {
       )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Sidebar - hidden on mobile */}
         <div className={`${isMobile ? 'hidden' : 'block'} md:col-span-1 space-y-4`}>
           <div className="flex items-center p-4 rounded-lg border bg-card">
             <Avatar className="h-16 w-16">
@@ -510,6 +473,7 @@ const Settings = () => {
           </Card>
         </div>
         
+        {/* Main Content */}
         <div className="md:col-span-2 space-y-6">
           {isMobile ? (
             renderActiveSection()
@@ -523,6 +487,7 @@ const Settings = () => {
         </div>
       </div>
       
+      {/* Mobile Bottom Navigation */}
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-2 flex justify-center z-10">
           <Button 
@@ -540,3 +505,4 @@ const Settings = () => {
 };
 
 export default Settings;
+

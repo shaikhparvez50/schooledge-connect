@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   User, 
@@ -11,8 +12,7 @@ import {
   Award,
   BarChart2,
   Edit,
-  Save,
-  Upload
+  Save
 } from "lucide-react";
 import { getUserData, updateUserData } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const StudentProfile = () => {
   const userData = getUserData();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: userData?.name || "John Smith",
@@ -33,7 +32,6 @@ const StudentProfile = () => {
     address: "123 School Street, Education City, 12345",
     bio: userData?.bio || "Student at SchoolEdge Academy",
   });
-  const [profileImage, setProfileImage] = useState(userData?.profilePicture || "");
   
   // Mock student data
   const student = {
@@ -65,28 +63,11 @@ const StudentProfile = () => {
     if (userData) {
       updateUserData({
         name: formData.name,
-        bio: formData.bio,
-        profilePicture: profileImage
+        bio: formData.bio
       });
       toast.success("Profile updated successfully!");
     }
     setIsEditing(false);
-  };
-  
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const imageDataUrl = reader.result as string;
-        setProfileImage(imageDataUrl);
-      };
-      reader.readAsDataURL(file);
-    }
   };
   
   return (
@@ -112,29 +93,12 @@ const StudentProfile = () => {
             )}
           </div>
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="relative">
-              <Avatar className="h-24 w-24 mb-4 cursor-pointer" onClick={handleImageClick}>
-                <AvatarImage src={profileImage} />
-                <AvatarFallback className="bg-primary text-white text-3xl">
-                  {formData.name.split(" ").map(n => n[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              {isEditing && (
-                <div 
-                  className="absolute bottom-4 right-0 bg-primary rounded-full p-1 cursor-pointer"
-                  onClick={handleImageClick}
-                >
-                  <Upload className="h-4 w-4 text-white" />
-                </div>
-              )}
-              <input 
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleImageChange}
-              />
-            </div>
+            <Avatar className="h-24 w-24 mb-4">
+              <AvatarImage src={userData?.profilePicture} />
+              <AvatarFallback className="bg-primary text-white text-3xl">
+                {formData.name.split(" ").map(n => n[0]).join("")}
+              </AvatarFallback>
+            </Avatar>
             
             {isEditing ? (
               <Input 

@@ -1,14 +1,13 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, ArrowLeft, Trash2, Eye } from "lucide-react";
+import { Save, ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import NoteDetailModal from "@/components/notes/NoteDetailModal";
 
 const Notes = () => {
   const navigate = useNavigate();
@@ -18,8 +17,6 @@ const Notes = () => {
     const saved = localStorage.getItem("studentNotes");
     return saved ? JSON.parse(saved) : [];
   });
-  const [selectedNote, setSelectedNote] = useState(null);
-  const [isNoteDetailOpen, setIsNoteDetailOpen] = useState(false);
   
   const handleSaveNote = () => {
     if (!title.trim() || !content.trim()) {
@@ -48,11 +45,6 @@ const Notes = () => {
     setSavedNotes(updatedNotes);
     localStorage.setItem("studentNotes", JSON.stringify(updatedNotes));
     toast.success("Note deleted");
-  };
-
-  const handleViewNote = (note) => {
-    setSelectedNote(note);
-    setIsNoteDetailOpen(true);
   };
   
   return (
@@ -112,24 +104,14 @@ const Notes = () => {
               <Card key={note.id} className="p-4">
                 <div className="flex justify-between">
                   <h3 className="font-medium truncate">{note.title}</h3>
-                  <div className="flex gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-muted-foreground"
-                      onClick={() => handleViewNote(note)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => handleDeleteNote(note.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDeleteNote(note.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{note.content}</p>
                 <div className="text-xs text-muted-foreground mt-2">
@@ -140,12 +122,6 @@ const Notes = () => {
           )}
         </div>
       </div>
-
-      <NoteDetailModal
-        note={selectedNote}
-        isOpen={isNoteDetailOpen}
-        onClose={() => setIsNoteDetailOpen(false)}
-      />
     </div>
   );
 };

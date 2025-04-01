@@ -16,7 +16,7 @@ interface StatsProps {
 
 const Stats = ({ title, value, change, trend, description, icon }: StatsProps) => {
   return (
-    <div className="glass-card p-6 rounded-xl transition-transform duration-300 hover:translate-y-[-2px]">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md transition-transform duration-300 hover:translate-y-[-2px]">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>

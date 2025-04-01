@@ -77,7 +77,7 @@ const StudentProfile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="glass-card p-6 rounded-xl"
+          className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"
         >
           <div className="flex justify-end mb-2">
             {isEditing ? (
@@ -175,7 +175,7 @@ const StudentProfile = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="lg:col-span-2 glass-card p-6 rounded-xl"
+        className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md"
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Academic Details</h2>

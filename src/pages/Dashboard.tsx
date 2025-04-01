@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -98,7 +97,7 @@ const Dashboard = () => {
       {/* Sidebar */}
       <div 
         className={`
-          w-64 bg-card border-r border-border fixed h-full z-20 transition-all duration-300 
+          w-64 bg-white dark:bg-gray-900 border-r border-border fixed h-full z-20 transition-all duration-300 
           ${mobileMenuOpen ? "left-0" : "-left-64 md:left-0"}
         `}
       >
@@ -198,7 +197,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 md:ml-64">
         {/* Header */}
-        <header className="bg-background border-b border-border sticky top-0 z-10">
+        <header className="bg-white dark:bg-gray-900 border-b border-border sticky top-0 z-10">
           <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center">
               <Button 

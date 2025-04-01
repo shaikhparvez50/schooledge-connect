@@ -5,7 +5,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
 
-@base {
+@layer base {
   :root {
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
@@ -99,7 +99,7 @@
 
 @layer utilities {
   .glass {
-    @apply backdrop-blur-md bg-white/20 dark:bg-black/20 border border-white/10 dark:border-white/5;
+    @apply backdrop-blur-md bg-white/80 dark:bg-black/60 border border-white/20 dark:border-white/10;
   }
 
   .glass-card {

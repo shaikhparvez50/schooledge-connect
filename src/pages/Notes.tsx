@@ -59,7 +59,7 @@ const Notes = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
-          <Card>
+          <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
               <CardTitle>Create New Note</CardTitle>
             </CardHeader>
@@ -96,12 +96,12 @@ const Notes = () => {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Saved Notes</h2>
           {savedNotes.length === 0 ? (
-            <Card className="p-4">
+            <Card className="p-4 bg-white dark:bg-gray-800">
               <p className="text-muted-foreground text-center">No saved notes yet</p>
             </Card>
           ) : (
             savedNotes.map((note) => (
-              <Card key={note.id} className="p-4">
+              <Card key={note.id} className="p-4 bg-white dark:bg-gray-800">
                 <div className="flex justify-between">
                   <h3 className="font-medium truncate">{note.title}</h3>
                   <Button 

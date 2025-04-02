@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, Film, Image, Plus, Search } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Film, Image, Plus, Search, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -294,11 +294,16 @@ const Courses = () => {
                 onClick={() => handleCourseClick(course)}
               >
                 <div 
-                  className="h-40 bg-cover bg-center" 
+                  className="h-40 bg-cover bg-center group relative" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
                 >
-                  <div className="h-full w-full bg-black/30 flex items-center justify-center">
-                    {course.type === "video" && <Film className="h-10 w-10 text-white" />}
+                  <div className="h-full w-full bg-black/30 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                    {course.type === "video" && (
+                      <>
+                        <Film className="h-10 w-10 text-white absolute left-4 top-4 opacity-70" />
+                        <Play className="h-14 w-14 text-white opacity-70 group-hover:opacity-100 transition-opacity" />
+                      </>
+                    )}
                     {course.type === "document" && <FileText className="h-10 w-10 text-white" />}
                     {course.type === "image" && <Image className="h-10 w-10 text-white" />}
                   </div>
@@ -325,11 +330,12 @@ const Courses = () => {
                 onClick={() => handleCourseClick(course)}
               >
                 <div 
-                  className="h-40 bg-cover bg-center" 
+                  className="h-40 bg-cover bg-center group relative" 
                   style={{ backgroundImage: `url(${course.thumbnail})` }}
                 >
-                  <div className="h-full w-full bg-black/30 flex items-center justify-center">
-                    <Film className="h-10 w-10 text-white" />
+                  <div className="h-full w-full bg-black/30 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                    <Film className="h-10 w-10 text-white absolute left-4 top-4 opacity-70" />
+                    <Play className="h-14 w-14 text-white opacity-70 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
                 <CardContent className="pt-4">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Film, FileText, Image, Save, X, Pencil, Trash2 } from "lucide-react";
+import { Film, FileText, Image, Save, X, Pencil, Trash2, Play } from "lucide-react";
 import { toast } from "sonner";
 import { getUserData } from "@/lib/user-utils";
 import { getCourseNotes, saveCourseNote, updateCourseNote, deleteCourseNote } from "@/lib/db-utils";
@@ -47,11 +46,13 @@ const CourseDetailModal = ({ open, onOpenChange, course }: CourseDetailModalProp
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [isPlaying, setIsPlaying] = useState(false);
   const userData = getUserData();
 
   useEffect(() => {
     if (open && course) {
       loadNotes();
+      setIsPlaying(false);
     }
   }, [open, course]);
 
@@ -125,6 +126,10 @@ const CourseDetailModal = ({ open, onOpenChange, course }: CourseDetailModalProp
     }
   };
 
+  const toggleVideoPlayback = () => {
+    setIsPlaying(!isPlaying);
+  };
+
   if (!course) return null;
 
   const TypeIcon = () => {
@@ -152,10 +157,29 @@ const CourseDetailModal = ({ open, onOpenChange, course }: CourseDetailModalProp
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <div 
-              className="h-48 bg-cover bg-center rounded-md mb-4" 
-              style={{ backgroundImage: `url(${course.thumbnail})` }}
-            />
+            {course.type === 'video' && isPlaying ? (
+              <div className="relative aspect-video bg-black rounded-md mb-4 overflow-hidden">
+                <video 
+                  src={course.thumbnail} 
+                  controls 
+                  autoPlay 
+                  className="w-full h-full object-contain"
+                  onError={() => toast.error("Could not load video. The URL might be invalid.")}
+                />
+              </div>
+            ) : (
+              <div 
+                className="relative h-48 bg-cover bg-center rounded-md mb-4 cursor-pointer group" 
+                style={{ backgroundImage: `url(${course.thumbnail})` }}
+                onClick={course.type === 'video' ? toggleVideoPlayback : undefined}
+              >
+                {course.type === 'video' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-all">
+                    <Play className="h-12 w-12 text-white opacity-80 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="space-y-3">
               <h3 className="text-lg font-medium">Course Details</h3>

@@ -1,12 +1,12 @@
 
 // MongoDB integration utility
-import { MongoClient } from 'mongodb';
+import { MongoClient as Client } from 'mongodb';
 
 // Secure connection string - in production, this should come from environment variables
 const uri = process.env.MONGODB_URI || "mongodb+srv://shaikhparbej50:*******@cluster0.cc4falz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // Create cached connection variable
-let cachedClient: MongoClient | null = null;
+let cachedClient: Client | null = null;
 let cachedDb: any = null;
 
 // Connection function
@@ -18,7 +18,7 @@ export async function connectToDatabase() {
 
   try {
     // Connect to the MongoDB cluster
-    const client = new MongoClient(uri);
+    const client = new Client(uri);
     await client.connect();
     
     // Specify which database we want to use

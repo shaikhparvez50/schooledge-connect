@@ -1,9 +1,9 @@
 
 // MongoDB integration utility
-import { MongoClient } from 'mongodb/lib/mongo_client';
+import { MongoClient } from 'mongodb';
 
 // Secure connection string - in production, this should come from environment variables
-const uri = process.env.MONGODB_URI || "mongodb+srv://shaikhparbej50:*******@cluster0.cc4falz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGODB_URI || "mongodb+srv://shaikhparbej50:4ubGaFpTHf3hf%23f@cluster0.cc4falz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // Create cached connection variable
 let cachedClient: MongoClient | null = null;

@@ -1,6 +1,5 @@
-
-// Local storage based database utilities
-// This implementation replaces MongoDB with client-side storage for better performance
+// Database utilities with MongoDB integration and localStorage fallback
+import connectToDatabase from './mongodb';
 
 // Helper to get data from localStorage with a default value
 const getLocalData = (key: string, defaultValue: any[] = []) => {
@@ -24,113 +23,178 @@ const saveLocalData = (key: string, data: any) => {
   }
 };
 
-export async function getFeatures() {
+// MongoDB helper functions
+async function tryMongoDBOperation(collection: string, operation: Function, localFallback: Function) {
   try {
-    const features = getLocalData('features', [
-      { id: '1', name: 'Course Publishing', description: 'Share your knowledge with others' },
-      { id: '2', name: 'Attendance Tracking', description: 'Track your daily attendance' },
-      { id: '3', name: 'Study Materials', description: 'Access learning resources' }
-    ]);
-    return { features };
-  } catch (e) {
-    console.error("Error fetching features:", e);
-    return { error: "Failed to fetch features" };
+    const { db } = await connectToDatabase();
+    if (!db) throw new Error("Database connection failed");
+    return await operation(db.collection(collection));
+  } catch (error) {
+    console.error(`MongoDB operation failed, using localStorage fallback:`, error);
+    return localFallback();
   }
+}
+
+// Existing functions with MongoDB integration first, then localStorage fallback
+
+export async function getFeatures() {
+  return await tryMongoDBOperation(
+    'features',
+    async (collection) => {
+      const features = await collection.find({}).toArray();
+      return { features };
+    },
+    () => {
+      const features = getLocalData('features', [
+        { id: '1', name: 'Course Publishing', description: 'Share your knowledge with others' },
+        { id: '2', name: 'Attendance Tracking', description: 'Track your daily attendance' },
+        { id: '3', name: 'Study Materials', description: 'Access learning resources' }
+      ]);
+      return { features };
+    }
+  );
 }
 
 export async function getStudents() {
-  try {
-    const students = getLocalData('students', []);
-    return { students };
-  } catch (e) {
-    console.error("Error fetching students:", e);
-    return { error: "Failed to fetch students" };
-  }
+  return await tryMongoDBOperation(
+    'students',
+    async (collection) => {
+      const students = await collection.find({}).toArray();
+      return { students };
+    },
+    () => {
+      const students = getLocalData('students', []);
+      return { students };
+    }
+  );
 }
 
 export async function getCourses() {
-  try {
-    const courses = getLocalData('courses', []);
-    return { courses };
-  } catch (e) {
-    console.error("Error fetching courses:", e);
-    return { error: "Failed to fetch courses" };
-  }
+  return await tryMongoDBOperation(
+    'courses',
+    async (collection) => {
+      const courses = await collection.find({}).toArray();
+      return { courses };
+    },
+    () => {
+      const courses = getLocalData('courses', []);
+      return { courses };
+    }
+  );
 }
 
 export async function getAssignments(studentId: string) {
-  try {
-    const allAssignments = getLocalData('assignments', []);
-    const assignments = allAssignments.filter((assignment: any) => 
-      assignment.studentId === studentId
-    );
-    return { assignments };
-  } catch (e) {
-    console.error("Error fetching assignments:", e);
-    return { error: "Failed to fetch assignments" };
-  }
+  return await tryMongoDBOperation(
+    'assignments',
+    async (collection) => {
+      const assignments = await collection.find({ studentId }).toArray();
+      return { assignments };
+    },
+    () => {
+      const allAssignments = getLocalData('assignments', []);
+      const assignments = allAssignments.filter((assignment: any) => 
+        assignment.studentId === studentId
+      );
+      return { assignments };
+    }
+  );
 }
 
 export async function updateProfile(userId: string, profileData: any) {
-  try {
-    const users = getLocalData('users', []);
-    const updatedUsers = users.map((user: any) => 
-      user._id === userId ? { ...user, ...profileData } : user
-    );
-    
-    saveLocalData('users', updatedUsers);
-    return { success: true, result: { modifiedCount: 1 } };
-  } catch (e) {
-    console.error("Error updating profile:", e);
-    return { error: "Failed to update profile" };
-  }
+  return await tryMongoDBOperation(
+    'users',
+    async (collection) => {
+      const result = await collection.updateOne(
+        { _id: userId },
+        { $set: profileData }
+      );
+      return { success: true, result };
+    },
+    () => {
+      const users = getLocalData('users', []);
+      const updatedUsers = users.map((user: any) => 
+        user._id === userId ? { ...user, ...profileData } : user
+      );
+      
+      saveLocalData('users', updatedUsers);
+      return { success: true, result: { modifiedCount: 1 } };
+    }
+  );
 }
 
 export async function saveCourse(courseData: any) {
-  try {
-    const courses = getLocalData('public_courses', []);
-    const newCourse = {
-      ...courseData,
-      _id: `local-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      isPublic: true
-    };
-    
-    courses.push(newCourse);
-    saveLocalData('public_courses', courses);
-    return { success: true, courseId: newCourse._id };
-  } catch (e) {
-    console.error("Error saving course:", e);
-    return { error: "Failed to save course" };
-  }
+  return await tryMongoDBOperation(
+    'public_courses',
+    async (collection) => {
+      const newCourse = {
+        ...courseData,
+        createdAt: new Date().toISOString(),
+        isPublic: true
+      };
+      
+      const result = await collection.insertOne(newCourse);
+      return { success: true, courseId: result.insertedId };
+    },
+    () => {
+      const courses = getLocalData('public_courses', []);
+      const newCourse = {
+        ...courseData,
+        _id: `local-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        isPublic: true
+      };
+      
+      courses.push(newCourse);
+      saveLocalData('public_courses', courses);
+      return { success: true, courseId: newCourse._id };
+    }
+  );
 }
 
 export async function getPublicCourses() {
-  try {
-    const courses = getLocalData('public_courses', [])
-      .filter((course: any) => course.isPublic)
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
-    return { courses };
-  } catch (e) {
-    console.error("Error fetching public courses:", e);
-    return { error: "Failed to fetch public courses" };
-  }
+  return await tryMongoDBOperation(
+    'public_courses',
+    async (collection) => {
+      const courses = await collection.find({ isPublic: true })
+        .sort({ createdAt: -1 })
+        .toArray();
+      return { courses };
+    },
+    () => {
+      const courses = getLocalData('public_courses', [])
+        .filter((course: any) => course.isPublic)
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      return { courses };
+    }
+  );
 }
 
 export async function searchCourses(query: string) {
-  try {
-    const courses = getLocalData('public_courses', []);
-    const searchResults = courses.filter((course: any) => {
-      const searchableText = `${course.title} ${course.description} ${course.author}`.toLowerCase();
-      return course.isPublic && searchableText.includes(query.toLowerCase());
-    });
-    
-    return { courses: searchResults };
-  } catch (e) {
-    console.error("Error searching courses:", e);
-    return { error: "Failed to search courses" };
-  }
+  return await tryMongoDBOperation(
+    'public_courses',
+    async (collection) => {
+      const courses = await collection.find({
+        isPublic: true,
+        $or: [
+          { title: { $regex: query, $options: 'i' } },
+          { description: { $regex: query, $options: 'i' } },
+          { author: { $regex: query, $options: 'i' } }
+        ]
+      }).toArray();
+      
+      return { courses };
+    },
+    () => {
+      const courses = getLocalData('public_courses', []);
+      const searchResults = courses.filter((course: any) => {
+        const searchableText = `${course.title} ${course.description} ${course.author}`.toLowerCase();
+        return course.isPublic && searchableText.includes(query.toLowerCase());
+      });
+      
+      return { courses: searchResults };
+    }
+  );
 }
 
 export async function trackAttendance(userId: string, date: string) {

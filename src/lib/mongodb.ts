@@ -1,43 +1,74 @@
 
 // MongoDB integration utility
-import { MongoClient } from 'mongodb';
+// Note: This file provides a mock implementation for browser environments
+// In production, MongoDB operations should run on a server
 
-// Secure connection string - in production, this should come from environment variables
-const uri = process.env.MONGODB_URI || "mongodb+srv://shaikhparbej50:4ubGaFpTHf3hf%23f@cluster0.cc4falz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// Create a mock MongoDB client for browser environments
+class MockMongoClient {
+  db(name) {
+    return {
+      collection: (collectionName) => ({
+        find: () => ({ toArray: () => Promise.resolve([]) }),
+        findOne: () => Promise.resolve(null),
+        insertOne: () => Promise.resolve({ insertedId: 'local-id-' + Date.now() }),
+        updateOne: () => Promise.resolve({ modifiedCount: 1 }),
+        countDocuments: () => Promise.resolve(0)
+      })
+    };
+  }
 
-// Create cached connection variable
-let cachedClient: MongoClient | null = null;
-let cachedDb: any = null;
+  connect() {
+    console.log("Mock MongoDB client connected");
+    return Promise.resolve(this);
+  }
+
+  close() {
+    return Promise.resolve();
+  }
+}
+
+// In a browser environment, we use a mock client
+// In a real application, MongoDB operations should be performed server-side
+const isBrowser = typeof window !== 'undefined';
+
+// Cache the mock client
+let cachedClient = null;
+let cachedDb = null;
 
 // Connection function
 export async function connectToDatabase() {
-  // If the connection exists, return it
+  // If we already have a connection, return it
   if (cachedClient && cachedDb) {
     return { client: cachedClient, db: cachedDb };
   }
 
   try {
-    // Connect to the MongoDB cluster
-    const client = new MongoClient(uri);
-    await client.connect();
-    
-    // Specify which database we want to use
-    const db = client.db("schooledge");
-    
-    cachedClient = client;
-    cachedDb = db;
-    
-    console.log("Connected successfully to MongoDB");
-    return { client, db };
+    if (isBrowser) {
+      console.warn("Warning: Attempting to use MongoDB in browser environment. Using mock implementation.");
+      
+      // Use mock client in browser
+      const client = new MockMongoClient();
+      const db = client.db("schooledge");
+      
+      cachedClient = client;
+      cachedDb = db;
+      
+      return { client, db };
+    } else {
+      // This code path would never execute in a browser
+      // It's here to maintain the API for potential server-side usage
+      // But in a real app, this would be in a separate server file
+      throw new Error("Server-side MongoDB operations should be implemented in a backend service.");
+    }
   } catch (error) {
     console.error("MongoDB connection error:", error);
     
-    // Fallback to local storage if MongoDB connection fails
+    // Fallback to local storage database
     console.log("Falling back to local storage database");
     return { 
       client: null, 
       db: {
-        collection: (name: string) => ({
+        collection: (name) => ({
           find: () => ({ toArray: () => Promise.resolve([]) }),
           findOne: () => Promise.resolve(null),
           insertOne: () => Promise.resolve({ insertedId: 'local-id-' + Date.now() }),

@@ -1,418 +1,341 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Plus, 
-  Calendar, 
-  Clock, 
-  Trash2, 
-  Bell,
-  AlertCircle 
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter, 
-  DialogTrigger 
-} from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect, useRef } from 'react';
+import { CalendarIcon, BellIcon, PlusIcon, TrashIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
-interface ScheduleItem {
-  id: string;
-  title: string;
-  date: Date;
-  startTime: string;
-  endTime: string;
-  description: string;
-  timerDuration?: number; // in minutes
-}
+// Import the audio file for the alarm
+const ALARM_SOUND_URL = '/alarm.mp3'; // This will need to be added to your public folder
 
 const Schedule = () => {
-  const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(() => {
-    const saved = localStorage.getItem("scheduleItems");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [newItem, setNewItem] = useState<Partial<ScheduleItem>>({
-    title: "",
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [events, setEvents] = useState<Event[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newEvent, setNewEvent] = useState<EventFormData>({
+    title: '',
     date: new Date(),
-    startTime: "",
-    endTime: "",
-    description: "",
-    timerDuration: 0
+    time: '',
+    description: '',
+    reminders: []
   });
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [activeTimer, setActiveTimer] = useState<{ id: string, timeLeft: number } | null>(null);
-  const timerRef = useRef<number | null>(null);
-
   const { toast } = useToast();
-  
+  const alarmSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize the audio element when component mounts
   useEffect(() => {
-    const alarmSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3");
-    
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
+    alarmSoundRef.current = new Audio(ALARM_SOUND_URL);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("scheduleItems", JSON.stringify(scheduleItems));
-  }, [scheduleItems]);
-  
+  const handleDateSelect = (date: Date | undefined) => {
+    setDate(date);
+  };
+
+  const handleOpenForm = () => {
+    setShowForm(true);
+    setNewEvent({
+      title: '',
+      date: date || new Date(),
+      time: '',
+      description: '',
+      reminders: []
+    });
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setNewItem(prev => ({ ...prev, [name]: value }));
+    setNewEvent(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-  
-  const handleAddScheduleItem = () => {
-    if (!newItem.title || !newItem.startTime || !newItem.endTime) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    const itemToAdd: ScheduleItem = {
-      id: Date.now().toString(),
-      title: newItem.title!,
-      date: selectedDate,
-      startTime: newItem.startTime!,
-      endTime: newItem.endTime!,
-      description: newItem.description || "",
-      timerDuration: newItem.timerDuration
+
+  const handleAddReminder = () => {
+    setNewEvent(prev => ({
+      ...prev,
+      reminders: [...prev.reminders, { time: '', description: '' }]
+    }));
+  };
+
+  const handleReminderChange = (index: number, field: string, value: string) => {
+    const updatedReminders = [...newEvent.reminders];
+    updatedReminders[index][field] = value;
+    setNewEvent(prev => ({
+      ...prev,
+      reminders: updatedReminders
+    }));
+  };
+
+  const handleRemoveReminder = (index: number) => {
+    const updatedReminders = [...newEvent.reminders];
+    updatedReminders.splice(index, 1);
+    setNewEvent(prev => ({
+      ...prev,
+      reminders: updatedReminders
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newEventToAdd = {
+      ...newEvent,
+      date: date || new Date()
     };
-    
-    setScheduleItems(prev => [...prev, itemToAdd]);
-    setNewItem({
-      title: "",
-      date: new Date(),
-      startTime: "",
-      endTime: "",
-      description: "",
-      timerDuration: 0
-    });
-    setIsDialogOpen(false);
+    setEvents(prev => [...prev, newEventToAdd]);
+    setShowForm(false);
     toast({
-      title: "Success",
-      description: "Schedule item added",
+      title: "Event added successfully!",
+      description: `Your event "${newEvent.title}" has been scheduled.`,
     });
   };
-  
-  const handleDeleteItem = (id: string) => {
-    setScheduleItems(prev => prev.filter(item => item.id !== id));
+
+  const handleDeleteEvent = (index: number) => {
+    setEvents(prev => {
+      const updatedEvents = [...prev];
+      updatedEvents.splice(index, 1);
+      return updatedEvents;
+    });
     toast({
-      title: "Item deleted",
-      description: "Schedule item has been removed",
+      title: "Event deleted!",
+      description: "The event has been removed from your schedule.",
     });
   };
-  
-  const startTimer = (id: string, duration: number) => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
+
+  // Update the playAlarm function to use the ref
+  const playAlarm = () => {
+    if (alarmSoundRef.current) {
+      alarmSoundRef.current.play();
     }
-    
-    const minutes = duration * 60 * 1000; // convert to milliseconds
-    const endTime = Date.now() + minutes;
-    
-    setActiveTimer({ id, timeLeft: minutes });
-    
-    timerRef.current = window.setInterval(() => {
-      const remaining = endTime - Date.now();
-      
-      if (remaining <= 0) {
-        clearInterval(timerRef.current!);
-        setActiveTimer(null);
-        toast({
-          title: "Timer Finished!",
-          description: "Your scheduled timer has ended",
-          variant: "destructive",
-        });
-        
-        if (alarmSound) {
-          alarmSound.play();
+  };
+
+  const stopAlarm = () => {
+    if (alarmSoundRef.current) {
+      alarmSoundRef.current.pause();
+      alarmSoundRef.current.currentTime = 0;
+    }
+  };
+
+  useEffect(() => {
+    const now = new Date();
+    events.forEach(event => {
+      event.reminders.forEach(reminder => {
+        const eventDateTime = new Date(event.date);
+        const [hours, minutes] = reminder.time.split(':').map(Number);
+        eventDateTime.setHours(hours, minutes, 0, 0);
+
+        if (eventDateTime > now) {
+          const timeUntilReminder = eventDateTime.getTime() - now.getTime();
+          setTimeout(() => {
+            playAlarm();
+            toast({
+              title: "Reminder!",
+              description: reminder.description || `Reminder for ${event.title} at ${reminder.time}`,
+              action: <Button variant="secondary" onClick={stopAlarm}>Stop</Button>,
+            });
+          }, timeUntilReminder);
         }
-      } else {
-        setActiveTimer({ id, timeLeft: remaining });
-      }
-    }, 1000);
-  };
-  
-  const stopTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    setActiveTimer(null);
-    toast({
-      title: "Timer stopped",
-      description: "Your timer has been canceled",
+      });
     });
-  };
-  
-  const formatTimeLeft = (ms: number) => {
-    const seconds = Math.floor((ms / 1000) % 60);
-    const minutes = Math.floor((ms / (1000 * 60)) % 60);
-    const hours = Math.floor(ms / (1000 * 60 * 60));
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-  
-  const itemsForSelectedDate = scheduleItems.filter(item => {
-    const itemDate = new Date(item.date);
-    return (
-      itemDate.getDate() === selectedDate.getDate() &&
-      itemDate.getMonth() === selectedDate.getMonth() &&
-      itemDate.getFullYear() === selectedDate.getFullYear()
-    );
-  });
-  
+  }, [events, toast]);
+
+  useEffect(() => {
+    const checkNotifications = () => {
+      events.forEach(event => {
+        const eventDateTime = new Date(event.date);
+        const now = new Date();
+
+        if (eventDateTime > now) {
+          const timeUntilEvent = eventDateTime.getTime() - now.getTime();
+          setTimeout(() => {
+            toast({
+              title: "Upcoming Event!",
+              description: `Don't forget: ${event.title} is happening now!`,
+            });
+          }, timeUntilEvent);
+        }
+      });
+    };
+
+    checkNotifications();
+  }, [events, toast]);
+
   return (
-    <div className="container mx-auto max-w-6xl py-6 px-4 sm:px-6">
-      <div className="flex justify-between items-center mb-6">
-        <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-accent transition-all duration-300" onClick={() => navigate("/dashboard")}>
-          <ArrowLeft className="h-4 w-4" />
-          <span>Dashboard</span>
-        </Button>
-        <h1 className="text-2xl font-semibold font-display bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">My Schedule</h1>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <Card className="shadow-md border-primary/10 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                Calendar
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="p-1">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={date => date && setSelectedDate(date)}
-                  className="rounded-md border"
-                  classNames={{
-                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                    day_today: "bg-accent text-accent-foreground",
-                  }}
-                />
-              </div>
-              
-              <div className="mt-4">
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-sm flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Add Schedule Item
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px] border-primary/20 shadow-lg">
-                    <DialogHeader>
-                      <DialogTitle className="text-center text-lg font-semibold">Add New Schedule Item</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="title" className="font-medium">Title</Label>
-                        <Input
-                          id="title"
-                          name="title"
-                          value={newItem.title}
-                          onChange={handleInputChange}
-                          placeholder="e.g., Math Class"
-                          className="border-input/50 focus-visible:ring-primary"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="startTime" className="font-medium">Start Time</Label>
-                          <Input
-                            id="startTime"
-                            name="startTime"
-                            type="time"
-                            value={newItem.startTime}
-                            onChange={handleInputChange}
-                            className="border-input/50 focus-visible:ring-primary"
-                          />
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Schedule</h1>
+      <div className="flex flex-col md:flex-row">
+        <div className="md:w-1/3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={format(date || new Date(), "PPP")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                <span>{format(date || new Date(), "PPP")}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center" side="bottom">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={handleDateSelect}
+                disabled={(date) =>
+                  date > new Date()
+                }
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <Button onClick={handleOpenForm} className="mt-4 w-full" variant="secondary">
+            <PlusIcon className="mr-2 h-4 w-4" />
+            Add Event
+          </Button>
+        </div>
+        <div className="md:w-2/3 mt-4 md:mt-0 md:ml-4">
+          <h2 className="text-xl font-semibold mb-2">
+            Events for {format(date || new Date(), "PPP")}
+          </h2>
+          {events.filter(event => format(event.date, "PPP") === format(date || new Date(), "PPP")).length === 0 ? (
+            <p>No events scheduled for this day.</p>
+          ) : (
+            <ul>
+              {events.filter(event => format(event.date, "PPP") === format(date || new Date(), "PPP")).map((event, index) => (
+                <li key={index} className="mb-2 p-3 border rounded-md shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">{event.title}</h3>
+                      <p className="text-sm text-gray-500">{event.description}</p>
+                      <p className="text-sm">Time: {event.time}</p>
+                      {event.reminders.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium">Reminders:</p>
+                          <ul>
+                            {event.reminders.map((reminder, reminderIndex) => (
+                              <li key={reminderIndex} className="text-xs text-gray-600">
+                                {reminder.description} - {reminder.time}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="endTime" className="font-medium">End Time</Label>
-                          <Input
-                            id="endTime"
-                            name="endTime"
-                            type="time"
-                            value={newItem.endTime}
-                            onChange={handleInputChange}
-                            className="border-input/50 focus-visible:ring-primary"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="description" className="font-medium">Description</Label>
-                        <Input
-                          id="description"
-                          name="description"
-                          value={newItem.description}
-                          onChange={handleInputChange}
-                          placeholder="Enter any details here"
-                          className="border-input/50 focus-visible:ring-primary"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="timer" className="font-medium">Timer Duration (minutes)</Label>
-                        <Input
-                          id="timerDuration"
-                          name="timerDuration"
-                          type="number"
-                          value={newItem.timerDuration || ""}
-                          onChange={handleInputChange}
-                          placeholder="Enter duration in minutes"
-                          min="0"
-                          className="border-input/50 focus-visible:ring-primary"
-                        />
-                      </div>
+                      )}
                     </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleAddScheduleItem} className="bg-primary hover:bg-primary/90">
-                        Add to Schedule
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {activeTimer && (
-            <Card className="mt-4 border-primary shadow-md animate-pulse">
-              <CardHeader className="pb-2 bg-gradient-to-r from-primary/20 to-transparent">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  Active Timer
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <div className="text-3xl font-mono font-bold my-4 text-primary">
-                    {formatTimeLeft(activeTimer.timeLeft)}
+                    <Button variant="destructive" size="icon" onClick={() => handleDeleteEvent(index)}>
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Timer for: {scheduleItems.find(item => item.id === activeTimer.id)?.title}
-                  </p>
-                  <Button onClick={stopTimer} variant="destructive" size="sm" className="shadow-sm hover:shadow-md transition-all duration-300">
-                    Stop Timer
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-        
-        <div className="md:col-span-2">
-          <Card className="shadow-md border-primary/10 h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-primary/10 to-transparent">
-              <CardTitle className="font-medium">
-                {selectedDate.toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric',
-                  year: 'numeric' 
-                })}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {itemsForSelectedDate.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <Calendar className="h-16 w-16 mx-auto mb-4 opacity-30 text-primary/30" />
-                  <p className="mb-2 text-lg font-medium">No schedule items for this date</p>
-                  <p className="text-sm mb-4">Your day looks clear. Add an item to get started.</p>
-                  <Button 
-                    variant="outline" 
-                    className="border-primary/30 hover:border-primary hover:bg-primary/5 transition-all duration-300"
-                    onClick={() => setIsDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add an Item
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto pr-2 custom-scrollbar">
-                  {itemsForSelectedDate
-                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                    .map(item => (
-                      <div 
-                        key={item.id}
-                        className="flex items-start gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-300 bg-card"
-                      >
-                        <div className="flex-shrink-0 h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                          <Clock className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <h3 className="font-medium text-lg">{item.title}</h3>
-                            <div className="flex space-x-2">
-                              {item.timerDuration && item.timerDuration > 0 && !activeTimer && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="border-primary/30 hover:border-primary hover:bg-primary/5 text-xs font-medium"
-                                  onClick={() => startTimer(item.id, item.timerDuration!)}
-                                >
-                                  <Bell className="h-3 w-3 mr-1" />
-                                  Start Timer
-                                </Button>
-                              )}
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-destructive opacity-60 hover:opacity-100 hover:bg-destructive/10"
-                                onClick={() => handleDeleteItem(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="flex items-center mt-1">
-                            <span className="inline-flex items-center text-sm px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
-                              {item.startTime} - {item.endTime}
-                            </span>
-                          </div>
-                          {item.description && (
-                            <p className="text-sm mt-2 text-muted-foreground">{item.description}</p>
-                          )}
-                          {item.timerDuration && item.timerDuration > 0 && (
-                            <div className="flex items-center mt-2 text-xs text-muted-foreground">
-                              <Bell className="h-3 w-3 mr-1 text-primary/60" />
-                              <span>Timer: {item.timerDuration} minutes</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 className="text-lg font-medium text-gray-800">Add New Event</h3>
+            <form onSubmit={handleSubmit} className="mt-4">
+              <label className="block text-sm text-gray-600 mb-2">
+                Title:
+                <input
+                  type="text"
+                  name="title"
+                  value={newEvent.title}
+                  onChange={handleInputChange}
+                  className="w-full border rounded-md py-2 px-3 text-gray-700 mt-1"
+                  required
+                />
+              </label>
+              <label className="block text-sm text-gray-600 mb-2">
+                Time:
+                <input
+                  type="time"
+                  name="time"
+                  value={newEvent.time}
+                  onChange={handleInputChange}
+                  className="w-full border rounded-md py-2 px-3 text-gray-700 mt-1"
+                  required
+                />
+              </label>
+              <label className="block text-sm text-gray-600 mb-2">
+                Description:
+                <textarea
+                  name="description"
+                  value={newEvent.description}
+                  onChange={handleInputChange}
+                  className="w-full border rounded-md py-2 px-3 text-gray-700 mt-1"
+                  rows={3}
+                />
+              </label>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Reminders:
+                </label>
+                {newEvent.reminders.map((reminder, index) => (
+                  <div key={index} className="mb-2 flex items-center">
+                    <input
+                      type="time"
+                      value={reminder.time}
+                      onChange={(e) => handleReminderChange(index, 'time', e.target.value)}
+                      className="mr-2 border rounded-md py-2 px-3 text-gray-700"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Reminder description"
+                      value={reminder.description}
+                      onChange={(e) => handleReminderChange(index, 'description', e.target.value)}
+                      className="mr-2 border rounded-md py-2 px-3 text-gray-700"
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveReminder(index)}>
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" size="sm" onClick={handleAddReminder}>
+                  Add Reminder
+                </Button>
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" onClick={handleCloseForm} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">Create Event</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+interface Event {
+  title: string;
+  date: Date;
+  time: string;
+  description: string;
+  reminders: Reminder[];
+}
+
+interface EventFormData {
+  title: string;
+  date: Date;
+  time: string;
+  description: string;
+  reminders: Reminder[];
+}
+
+interface Reminder {
+  time: string;
+  description: string;
+}
 
 export default Schedule;

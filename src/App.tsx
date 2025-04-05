@@ -48,7 +48,11 @@ const App = () => (
               </GuestRoute>
             } />
             <Route path="/features" element={<Features />} />
+            
+            {/* Public Course Pages - available to all users */}
             <Route path="/public-courses" element={<PublicCourses />} />
+            <Route path="/upload-courses" element={<UploadCourses />} />
+            <Route path="/courses" element={<Courses />} />
             
             {/* Protected routes - require authentication */}
             <Route path="/dashboard" element={
@@ -59,16 +63,6 @@ const App = () => (
             <Route path="/notes" element={
               <ProtectedRoute>
                 <Notes />
-              </ProtectedRoute>
-            } />
-            <Route path="/upload-courses" element={
-              <ProtectedRoute>
-                <UploadCourses />
-              </ProtectedRoute>
-            } />
-            <Route path="/courses" element={
-              <ProtectedRoute>
-                <Courses />
               </ProtectedRoute>
             } />
             <Route path="/schedule" element={

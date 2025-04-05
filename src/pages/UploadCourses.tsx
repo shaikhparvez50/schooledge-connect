@@ -117,11 +117,14 @@ const UploadCourses = () => {
   return (
     <div className="container mx-auto max-w-6xl py-6">
       <div className="flex justify-between items-center mb-6">
-        <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          Back
         </Button>
         <h1 className="text-2xl font-bold">Upload Course Materials</h1>
+        <Button variant="outline" onClick={() => navigate("/public-courses")}>
+          View Public Courses
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -193,6 +196,7 @@ const UploadCourses = () => {
               <Button 
                 onClick={handleUpload} 
                 disabled={uploading}
+                className="w-full md:w-auto"
               >
                 {uploading ? (
                   <>
@@ -218,7 +222,7 @@ const UploadCourses = () => {
             </Card>
           ) : (
             uploadedMaterials.slice(0, 5).map((material) => (
-              <Card key={material.id} className="p-4">
+              <Card key={material.id} className="p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-medium truncate">{material.title}</h3>
                 {material.description && (
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{material.description}</p>

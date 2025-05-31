@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, FileText, Image, File, X, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,29 +8,37 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { saveCourse } from "@/lib/db-utils";
+import { useAuth } from "@/context/AuthContext";
+import { createCourse, getUserCourses, type Course } from "@/lib/supabase-utils";
 
 const UploadCourses = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [uploadedMaterials, setUploadedMaterials] = useState(() => {
-    const saved = localStorage.getItem("uploadedMaterials");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [userCourses, setUserCourses] = useState<Course[]>([]);
   
-  const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
+  // Load user's courses when component mounts
+  useEffect(() => {
+    if (user) {
+      getUserCourses(user.id).then(courses => {
+        setUserCourses(courses);
+      });
+    }
+  }, [user]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
     setFiles([...files, ...selectedFiles]);
   };
   
-  const removeFile = (indexToRemove) => {
+  const removeFile = (indexToRemove: number) => {
     setFiles(files.filter((_, index) => index !== indexToRemove));
   };
   
-  const getFileIcon = (file) => {
+  const getFileIcon = (file: File) => {
     const fileType = file.type.split('/')[0];
     switch (fileType) {
       case 'image':
@@ -43,6 +51,11 @@ const UploadCourses = () => {
   };
   
   const handleUpload = async () => {
+    if (!user) {
+      toast.error("You must be logged in to upload courses");
+      return;
+    }
+
     if (!title.trim()) {
       toast.error("Please add a title for your upload");
       return;
@@ -56,59 +69,34 @@ const UploadCourses = () => {
     setUploading(true);
     
     try {
-      // In a real app, we would upload the files to a server
-      // Here we'll just simulate it by saving metadata
-      const fileInfo = files.map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file) // This creates a temporary URL for preview
-      }));
+      // Get user profile for author name
+      const userEmail = user.email || 'Anonymous';
       
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      
-      const newMaterial = {
-        id: Date.now(),
+      const courseData = {
         title,
         description,
-        files: fileInfo,
-        createdAt: new Date().toISOString(),
-        author: userData.name || 'Anonymous',
-        authorId: userData.id || 'unknown',
-        isPublic: true
+        author: userEmail,
+        author_id: user.id,
+        file_count: files.length,
+        file_types: files.map(file => file.type)
       };
       
-      // Save to local storage for now
-      const updatedMaterials = [...uploadedMaterials, newMaterial];
-      setUploadedMaterials(updatedMaterials);
-      localStorage.setItem("uploadedMaterials", JSON.stringify(updatedMaterials));
+      const newCourse = await createCourse(courseData);
       
-      // Save to public courses
-      const publicCourses = JSON.parse(localStorage.getItem("publicCourses") || "[]");
-      localStorage.setItem("publicCourses", JSON.stringify([...publicCourses, newMaterial]));
+      toast.success("Course uploaded successfully! Your course is now publicly available.");
       
-      // Also save to MongoDB (in a real app this would use FormData for file uploads)
-      const result = await saveCourse({
-        title,
-        description,
-        author: userData.name || 'Anonymous',
-        authorId: userData.id || 'unknown',
-        fileCount: files.length,
-        fileTypes: files.map(file => file.type)
-      });
-      
-      if (result.error) {
-        console.error("MongoDB save error:", result.error);
-        // Still continue since we saved to localStorage as fallback
-      }
-      
-      toast.success("Materials uploaded successfully! Your course is now publicly available.");
+      // Reset form
       setTitle("");
       setDescription("");
       setFiles([]);
+      
+      // Refresh user courses
+      const updatedCourses = await getUserCourses(user.id);
+      setUserCourses(updatedCourses);
+      
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("There was an error uploading your materials. Please try again.");
+      toast.error("There was an error uploading your course. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -195,7 +183,7 @@ const UploadCourses = () => {
             <CardFooter>
               <Button 
                 onClick={handleUpload} 
-                disabled={uploading}
+                disabled={uploading || !user}
                 className="w-full md:w-auto"
               >
                 {uploading ? (
@@ -215,21 +203,21 @@ const UploadCourses = () => {
         </div>
         
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Recently Uploaded</h2>
-          {uploadedMaterials.length === 0 ? (
+          <h2 className="text-xl font-semibold">Your Recent Uploads</h2>
+          {userCourses.length === 0 ? (
             <Card className="p-4">
               <p className="text-muted-foreground text-center">No uploaded materials yet</p>
             </Card>
           ) : (
-            uploadedMaterials.slice(0, 5).map((material) => (
-              <Card key={material.id} className="p-4 hover:shadow-md transition-shadow">
-                <h3 className="font-medium truncate">{material.title}</h3>
-                {material.description && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{material.description}</p>
+            userCourses.slice(0, 5).map((course) => (
+              <Card key={course.id} className="p-4 hover:shadow-md transition-shadow">
+                <h3 className="font-medium truncate">{course.title}</h3>
+                {course.description && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{course.description}</p>
                 )}
                 <div className="mt-2">
                   <p className="text-xs text-muted-foreground">
-                    {material.files.length} file(s) • {new Date(material.createdAt).toLocaleDateString()}
+                    {course.file_count} file(s) • {new Date(course.created_at).toLocaleDateString()}
                   </p>
                 </div>
               </Card>

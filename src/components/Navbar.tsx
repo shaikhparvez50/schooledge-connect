@@ -5,12 +5,11 @@ import { Menu, X, Sun, Moon, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { clearUserData } from "@/lib/user-utils";
 import { toast } from "sonner";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -39,10 +38,14 @@ const Navbar = () => {
     localStorage.setItem("theme", newTheme ? "dark" : "light");
   };
 
-  const handleLogout = () => {
-    clearUserData();
-    toast.success("Logged out successfully!");
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Error logging out");
+    }
   };
 
   return (
@@ -93,7 +96,7 @@ const Navbar = () => {
                 
                 <div className="flex items-center gap-2">
                   <div className="font-medium text-sm mr-2">
-                    {user?.name || "User"}
+                    {user?.email || "User"}
                   </div>
                   <Button 
                     variant="outline" 
@@ -204,7 +207,7 @@ const Navbar = () => {
                 
                 <div className="flex flex-col space-y-2 pt-2 border-t border-border">
                   <div className="text-sm font-medium mb-2">
-                    Signed in as: {user?.name || "User"}
+                    Signed in as: {user?.email || "User"}
                   </div>
                   <Button 
                     variant="outline" 

@@ -25,11 +25,13 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import Stats from "@/components/dashboard/Stats";
 import StudentProfile from "@/components/dashboard/StudentProfile";
-import { getUserData } from "@/lib/user-utils";
+import { useAuth } from "@/context/AuthContext";
+import { getUserProfile, getPublicCourses, type UserProfile, type Course } from "@/lib/supabase-utils";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const userData = getUserData();
+  const { user, signOut } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [attendanceCount, setAttendanceCount] = useState(() => {
@@ -42,8 +44,19 @@ const Dashboard = () => {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<Course[]>([]);
   
+  // Load user profile when component mounts
+  useEffect(() => {
+    if (user) {
+      getUserProfile(user.id).then(profile => {
+        if (profile) {
+          setUserProfile(profile);
+        }
+      });
+    }
+  }, [user]);
+
   const markAttendance = () => {
     const today = new Date().toISOString().split('T')[0];
     
@@ -66,12 +79,17 @@ const Dashboard = () => {
     navigate("/settings");
   };
 
-  const handleLogout = () => {
-    toast.success("Logged out successfully!");
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Error logging out");
+    }
   };
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
     
@@ -80,16 +98,20 @@ const Dashboard = () => {
       return;
     }
     
-    // Get courses from localStorage for searching
-    const publicCourses = JSON.parse(localStorage.getItem("publicCourses") || "[]");
-    
-    const filteredResults = publicCourses.filter(course => 
-      course.title.toLowerCase().includes(query.toLowerCase()) || 
-      course.description?.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    setSearchResults(filteredResults);
-    setShowSearchResults(true);
+    try {
+      const courses = await getPublicCourses();
+      const filteredResults = courses.filter(course => 
+        course.title.toLowerCase().includes(query.toLowerCase()) || 
+        course.description?.toLowerCase().includes(query.toLowerCase())
+      );
+      
+      setSearchResults(filteredResults);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+      setShowSearchResults(true);
+    }
   };
   
   return (
@@ -269,15 +291,18 @@ const Dashboard = () => {
               >
                 <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white">
                   <span className="font-medium text-sm">
-                    {userData?.name ? userData.name.split(" ").map(n => n[0]).join("") : "JS"}
+                    {userProfile?.name ? 
+                      userProfile.name.split(" ").map(n => n[0]).join("") : 
+                      user?.email?.charAt(0).toUpperCase() || "U"
+                    }
                   </span>
                 </div>
                 <div className="hidden md:block">
                   <div className="text-sm font-medium">
-                    {userData?.name || "John Smith"}
+                    {userProfile?.name || user?.email || "User"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {userData?.role || "Student"}
+                    {userProfile?.role || "Student"}
                   </div>
                 </div>
               </div>

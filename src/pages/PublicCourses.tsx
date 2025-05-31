@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, FileText, Film, Image, Globe, Filter } from "lucide-react";
@@ -6,22 +7,33 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { getPublicCourses, type Course } from "@/lib/supabase-utils";
 
 const PublicCourses = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [allCourses, setAllCourses] = useState([]);
-  const [filteredCourses, setFilteredCourses] = useState([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 9;
 
   useEffect(() => {
-    // Load all public courses
-    const publicCourses = localStorage.getItem("publicCourses");
-    const parsedCourses = publicCourses ? JSON.parse(publicCourses) : [];
-    setAllCourses(parsedCourses);
-    setFilteredCourses(parsedCourses);
+    // Load all public courses from Supabase
+    const loadCourses = async () => {
+      try {
+        const courses = await getPublicCourses();
+        setAllCourses(courses);
+        setFilteredCourses(courses);
+      } catch (error) {
+        console.error('Error loading courses:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCourses();
   }, []);
 
   useEffect(() => {
@@ -41,11 +53,11 @@ const PublicCourses = () => {
     if (activeTab !== "all") {
       results = results.filter(course => {
         // Check if any file in the course matches the selected type
-        return course.files.some(file => {
-          const fileType = file.type.split('/')[0];
-          if (activeTab === "videos" && fileType === "video") return true;
-          if (activeTab === "documents" && (fileType === "text" || file.type.includes("pdf") || file.type.includes("document"))) return true;
-          if (activeTab === "images" && fileType === "image") return true;
+        return course.file_types.some(fileType => {
+          const mainType = fileType.split('/')[0];
+          if (activeTab === "videos" && mainType === "video") return true;
+          if (activeTab === "documents" && (mainType === "text" || fileType.includes("pdf") || fileType.includes("document"))) return true;
+          if (activeTab === "images" && mainType === "image") return true;
           return false;
         });
       });
@@ -61,13 +73,16 @@ const PublicCourses = () => {
   const currentItems = filteredCourses.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
 
-  const getFileIcon = (fileType) => {
-    if (fileType.includes("video")) return <Film className="h-10 w-10 text-white" />;
-    if (fileType.includes("image")) return <Image className="h-10 w-10 text-white" />;
+  const getFileIcon = (fileTypes: string[]) => {
+    const hasVideo = fileTypes.some(type => type.includes("video"));
+    const hasImage = fileTypes.some(type => type.includes("image"));
+    
+    if (hasVideo) return <Film className="h-10 w-10 text-white" />;
+    if (hasImage) return <Image className="h-10 w-10 text-white" />;
     return <FileText className="h-10 w-10 text-white" />;
   };
 
-  const getRandomThumbnail = (index) => {
+  const getRandomThumbnail = (index: number) => {
     const images = [
       "https://images.unsplash.com/photo-1635070041078-e363dbe005cb",
       "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa",
@@ -77,6 +92,19 @@ const PublicCourses = () => {
     ];
     return images[index % images.length];
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto max-w-6xl py-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading courses...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-6xl py-6">
@@ -125,9 +153,7 @@ const PublicCourses = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentItems.map((course, index) => {
-                // Determine thumbnail and primary file type
-                const mainFileType = course.files[0]?.type || "document";
-                const thumbnail = course.files.find(f => f.type.includes("image"))?.url || getRandomThumbnail(index);
+                const thumbnail = getRandomThumbnail(index);
                 
                 return (
                   <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -136,18 +162,18 @@ const PublicCourses = () => {
                       style={{ backgroundImage: `url(${thumbnail})` }}
                     >
                       <div className="h-full w-full bg-black/30 flex items-center justify-center">
-                        {getFileIcon(mainFileType)}
+                        {getFileIcon(course.file_types)}
                       </div>
                     </div>
                     <CardContent className="pt-4">
                       <h3 className="font-semibold text-lg mb-1">{course.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">By {course.author || "Anonymous"}</p>
+                      <p className="text-sm text-muted-foreground mb-2">By {course.author}</p>
                       {course.description && (
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{course.description}</p>
                       )}
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{course.files.length} file(s)</span>
-                        <span>{new Date(course.createdAt).toLocaleDateString()}</span>
+                        <span>{course.file_count} file(s)</span>
+                        <span>{new Date(course.created_at).toLocaleDateString()}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -163,7 +189,7 @@ const PublicCourses = () => {
                 <PaginationItem>
                   <PaginationPrevious 
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   />
                 </PaginationItem>
                 
@@ -172,6 +198,7 @@ const PublicCourses = () => {
                     <PaginationLink 
                       isActive={currentPage === index + 1}
                       onClick={() => setCurrentPage(index + 1)}
+                      className="cursor-pointer"
                     >
                       {index + 1}
                     </PaginationLink>
@@ -181,7 +208,7 @@ const PublicCourses = () => {
                 <PaginationItem>
                   <PaginationNext 
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -191,15 +218,15 @@ const PublicCourses = () => {
         
         {/* Other tabs content - They will trigger the filter in useEffect */}
         <TabsContent value="videos" className="mt-0">
-          {/* Content will be filtered based on the activeTab state */}
+          {/* Content automatically filtered by activeTab in useEffect */}
         </TabsContent>
         
         <TabsContent value="documents" className="mt-0">
-          {/* Content will be filtered based on the activeTab state */}
+          {/* Content automatically filtered by activeTab in useEffect */}
         </TabsContent>
         
         <TabsContent value="images" className="mt-0">
-          {/* Content will be filtered based on the activeTab state */}
+          {/* Content automatically filtered by activeTab in useEffect */}
         </TabsContent>
       </Tabs>
     </div>

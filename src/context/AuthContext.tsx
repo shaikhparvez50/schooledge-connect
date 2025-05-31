@@ -66,10 +66,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+    
+    // If login is successful but user is not confirmed, try to resend confirmation
+    if (error && error.message.includes('email_not_confirmed')) {
+      console.log('Email not confirmed, trying to resend confirmation...');
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (!resendError) {
+        return { 
+          error: { 
+            message: 'Please check your email and click the confirmation link to complete your registration.' 
+          } 
+        };
+      }
+    }
     
     return { error };
   };

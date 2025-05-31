@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
@@ -25,8 +24,10 @@ const ForgotPassword = () => {
     setLoading(true);
     
     try {
+      // Use the current website URL instead of localhost
+      const currentUrl = window.location.origin;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${currentUrl}/reset-password`,
       });
 
       if (error) {

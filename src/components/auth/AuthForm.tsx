@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
@@ -56,7 +55,14 @@ const AuthForm = ({ type }: AuthFormProps) => {
         const { error } = await signIn(formData.email, formData.password);
         
         if (error) {
-          toast.error(error.message || "Login failed");
+          // Handle specific error messages
+          if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
+            toast.error("Please check your email and click the confirmation link to verify your account.");
+          } else if (error.message.includes('Invalid login credentials')) {
+            toast.error("Invalid email or password. Please check your credentials and try again.");
+          } else {
+            toast.error(error.message || "Login failed");
+          }
         } else {
           toast.success("Successfully logged in!");
           navigate("/dashboard");
@@ -68,7 +74,11 @@ const AuthForm = ({ type }: AuthFormProps) => {
         });
         
         if (error) {
-          toast.error(error.message || "Registration failed");
+          if (error.message.includes('User already registered')) {
+            toast.error("An account with this email already exists. Please try logging in instead.");
+          } else {
+            toast.error(error.message || "Registration failed");
+          }
         } else {
           toast.success("Account created successfully! Please check your email to verify your account.");
           navigate("/dashboard");

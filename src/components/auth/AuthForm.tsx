@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
@@ -6,7 +5,6 @@ import { ArrowLeft, Mail, Lock, UserCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { saveUserData } from "@/lib/user-utils";
 import { useAuth } from "@/context/AuthContext";
 
 type AuthFormProps = {
@@ -15,7 +13,7 @@ type AuthFormProps = {
 
 const AuthForm = ({ type }: AuthFormProps) => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated, signIn, signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,46 +39,35 @@ const AuthForm = ({ type }: AuthFormProps) => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      
+    try {
       if (type === "login") {
-        // Create user data for login
-        const userData = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: formData.email.split('@')[0], // Use part of the email as name for login
-          email: formData.email,
-          role: 'student' as 'student' | 'teacher', // Default role for login
-        };
+        const { error } = await signIn(formData.email, formData.password);
         
-        // Save user data to localStorage when logging in
-        saveUserData(userData);
-        
-        // Update auth context
-        login(userData);
-        
-        toast.success("Successfully logged in!");
-        navigate("/dashboard");
+        if (error) {
+          toast.error(error.message || "Login failed");
+        } else {
+          toast.success("Successfully logged in!");
+          navigate("/dashboard");
+        }
       } else {
-        // Create user data for registration
-        const userData = {
-          id: Math.random().toString(36).substr(2, 9),
+        const { error } = await signUp(formData.email, formData.password, {
           name: formData.name,
-          email: formData.email,
-          role: formData.role as 'student' | 'teacher',
-        };
+          role: formData.role
+        });
         
-        // Save user data to localStorage when registering
-        saveUserData(userData);
-        
-        // Update auth context
-        login(userData);
-        
-        toast.success("Account created successfully!");
-        navigate("/dashboard");
+        if (error) {
+          toast.error(error.message || "Registration failed");
+        } else {
+          toast.success("Account created successfully! Please check your email to verify your account.");
+          navigate("/dashboard");
+        }
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -199,8 +186,6 @@ const AuthForm = ({ type }: AuthFormProps) => {
               >
                 <option value="student">Student</option>
                 <option value="teacher">Teacher</option>
-                <option value="parent">Parent</option>
-                <option value="admin">Administrator</option>
               </select>
             </div>
           )}

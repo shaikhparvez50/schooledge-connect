@@ -37,7 +37,11 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     return null;
   }
 
-  return data;
+  // Ensure role is properly typed
+  return {
+    ...data,
+    role: (data.role as 'student' | 'teacher') || 'student'
+  };
 };
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>) => {

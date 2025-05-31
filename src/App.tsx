@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import AuthForm from "./components/auth/AuthForm";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Features from "./pages/Features";
 import Notes from "./pages/Notes";
 import UploadCourses from "./pages/UploadCourses";
@@ -47,6 +49,12 @@ const App = () => (
                 <AuthForm type="register" />
               </GuestRoute>
             } />
+            <Route path="/forgot-password" element={
+              <GuestRoute>
+                <ForgotPassword />
+              </GuestRoute>
+            } />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/features" element={<Features />} />
             
             {/* Public Course Pages - available to all users */}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -26,9 +27,11 @@ import { toast } from "sonner";
 import Stats from "@/components/dashboard/Stats";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import { getPublicCourses, type Course } from "@/lib/supabase-utils";
+import { useAuth } from "@/context/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [attendanceCount, setAttendanceCount] = useState(() => {
@@ -67,6 +70,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     try {
+      await signOut();
       navigate("/");
       toast.success("Logged out successfully");
     } catch (error) {
@@ -98,6 +102,17 @@ const Dashboard = () => {
       setSearchResults([]);
       setShowSearchResults(true);
     }
+  };
+
+  // Get user's name from user metadata or email
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.name) {
+      return user.user_metadata.name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
   };
   
   return (
@@ -276,10 +291,12 @@ const Dashboard = () => {
                 onClick={handleProfileClick}
               >
                 <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white">
-                  <span className="font-medium text-sm">U</span>
+                  <span className="font-medium text-sm">
+                    {getUserDisplayName().charAt(0).toUpperCase()}
+                  </span>
                 </div>
                 <div className="hidden md:block">
-                  <div className="text-sm font-medium">Guest User</div>
+                  <div className="text-sm font-medium">{getUserDisplayName()}</div>
                   <div className="text-xs text-muted-foreground">Student</div>
                 </div>
               </div>

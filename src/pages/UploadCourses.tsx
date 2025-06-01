@@ -8,10 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { createCourse, getAllCourses, type Course } from "@/lib/supabase-utils";
+import { createCourse, getUserCourses, type Course } from "@/lib/supabase-utils";
+import { useAuth } from "@/context/AuthContext";
 
 const UploadCourses = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -20,10 +22,12 @@ const UploadCourses = () => {
   
   // Load recent courses when component mounts
   useEffect(() => {
-    getAllCourses().then(courses => {
-      setRecentCourses(courses.slice(0, 5));
-    });
-  }, []);
+    if (user) {
+      getUserCourses(user.id).then(courses => {
+        setRecentCourses(courses.slice(0, 5));
+      });
+    }
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -45,8 +49,23 @@ const UploadCourses = () => {
         return <File className="h-4 w-4" />;
     }
   };
+
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.name) {
+      return user.user_metadata.name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
   
   const handleUpload = async () => {
+    if (!user) {
+      toast.error("You must be logged in to upload courses");
+      return;
+    }
+    
     if (!title.trim()) {
       toast.error("Please add a title for your upload");
       return;
@@ -63,8 +82,8 @@ const UploadCourses = () => {
       const courseData = {
         title,
         description,
-        author: 'Guest User',
-        author_id: 'guest-user-id',
+        author: getUserDisplayName(),
+        author_id: user.id,
         file_count: files.length,
         file_types: files.map(file => file.type)
       };
@@ -79,7 +98,7 @@ const UploadCourses = () => {
       setFiles([]);
       
       // Refresh recent courses
-      const updatedCourses = await getAllCourses();
+      const updatedCourses = await getUserCourses(user.id);
       setRecentCourses(updatedCourses.slice(0, 5));
       
     } catch (error) {
@@ -191,7 +210,7 @@ const UploadCourses = () => {
         </div>
         
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Recent Uploads</h2>
+          <h2 className="text-xl font-semibold">My Recent Uploads</h2>
           {recentCourses.length === 0 ? (
             <Card className="p-4">
               <p className="text-muted-foreground text-center">No uploaded materials yet</p>

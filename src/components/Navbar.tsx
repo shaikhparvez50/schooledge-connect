@@ -1,14 +1,18 @@
 
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Menu, X, Sun, Moon } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, Sun, Moon, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   // Handle scroll effect
   useEffect(() => {
@@ -34,6 +38,16 @@ const Navbar = () => {
     localStorage.setItem("theme", newTheme ? "dark" : "light");
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+      navigate("/");
+    } catch (error) {
+      toast.error("Error signing out");
+    }
+  };
+
   return (
     <nav
       className={cn(
@@ -57,21 +71,31 @@ const Navbar = () => {
           <Link to="/" className="text-foreground hover:text-primary transition-colors">
             Home
           </Link>
-          <Link to="/dashboard" className="text-foreground hover:text-primary transition-colors">
-            Dashboard
-          </Link>
-          <Link to="/courses" className="text-foreground hover:text-primary transition-colors">
-            Courses
-          </Link>
-          <Link to="/notes" className="text-foreground hover:text-primary transition-colors">
-            Notes
-          </Link>
-          <Link to="/messages" className="text-foreground hover:text-primary transition-colors">
-            Messages
-          </Link>
-          <Link to="/features" className="text-foreground hover:text-primary transition-colors">
-            Features
-          </Link>
+          {user ? (
+            <>
+              <Link to="/dashboard" className="text-foreground hover:text-primary transition-colors">
+                Dashboard
+              </Link>
+              <Link to="/courses" className="text-foreground hover:text-primary transition-colors">
+                Courses
+              </Link>
+              <Link to="/notes" className="text-foreground hover:text-primary transition-colors">
+                Notes
+              </Link>
+              <Link to="/messages" className="text-foreground hover:text-primary transition-colors">
+                Messages
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/public-courses" className="text-foreground hover:text-primary transition-colors">
+                Courses
+              </Link>
+              <Link to="/features" className="text-foreground hover:text-primary transition-colors">
+                Features
+              </Link>
+            </>
+          )}
           
           <div className="flex items-center space-x-3">
             <Button 
@@ -82,6 +106,23 @@ const Navbar = () => {
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </Button>
+            
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" onClick={() => navigate("/settings")}>
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </Button>
+                <Button variant="outline" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => navigate("/auth")}>
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
 
@@ -117,41 +158,75 @@ const Navbar = () => {
             >
               Home
             </Link>
-            <Link 
-              to="/dashboard" 
-              className="py-2 text-foreground hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
-            <Link 
-              to="/courses" 
-              className="py-2 text-foreground hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Courses
-            </Link>
-            <Link 
-              to="/notes" 
-              className="py-2 text-foreground hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Notes
-            </Link>
-            <Link 
-              to="/messages" 
-              className="py-2 text-foreground hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Messages
-            </Link>
-            <Link 
-              to="/features" 
-              className="py-2 text-foreground hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Features
-            </Link>
+            {user ? (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className="py-2 text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <Link 
+                  to="/courses" 
+                  className="py-2 text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Courses
+                </Link>
+                <Link 
+                  to="/notes" 
+                  className="py-2 text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Notes
+                </Link>
+                <Link 
+                  to="/messages" 
+                  className="py-2 text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Messages
+                </Link>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    handleSignOut();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/public-courses" 
+                  className="py-2 text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Courses
+                </Link>
+                <Link 
+                  to="/features" 
+                  className="py-2 text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Features
+                </Link>
+                <Button 
+                  onClick={() => {
+                    navigate("/auth");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full"
+                >
+                  Sign In
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

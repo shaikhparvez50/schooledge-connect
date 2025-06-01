@@ -8,26 +8,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
-import { createCourse, getUserCourses, type Course } from "@/lib/supabase-utils";
+import { createCourse, getAllCourses, type Course } from "@/lib/supabase-utils";
 
 const UploadCourses = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [userCourses, setUserCourses] = useState<Course[]>([]);
+  const [recentCourses, setRecentCourses] = useState<Course[]>([]);
   
-  // Load user's courses when component mounts
+  // Load recent courses when component mounts
   useEffect(() => {
-    if (user) {
-      getUserCourses(user.id).then(courses => {
-        setUserCourses(courses);
-      });
-    }
-  }, [user]);
+    getAllCourses().then(courses => {
+      setRecentCourses(courses.slice(0, 5));
+    });
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -51,11 +47,6 @@ const UploadCourses = () => {
   };
   
   const handleUpload = async () => {
-    if (!user) {
-      toast.error("You must be logged in to upload courses");
-      return;
-    }
-
     if (!title.trim()) {
       toast.error("Please add a title for your upload");
       return;
@@ -69,14 +60,11 @@ const UploadCourses = () => {
     setUploading(true);
     
     try {
-      // Get user profile for author name
-      const userEmail = user.email || 'Anonymous';
-      
       const courseData = {
         title,
         description,
-        author: userEmail,
-        author_id: user.id,
+        author: 'Guest User',
+        author_id: 'guest-user-id',
         file_count: files.length,
         file_types: files.map(file => file.type)
       };
@@ -90,9 +78,9 @@ const UploadCourses = () => {
       setDescription("");
       setFiles([]);
       
-      // Refresh user courses
-      const updatedCourses = await getUserCourses(user.id);
-      setUserCourses(updatedCourses);
+      // Refresh recent courses
+      const updatedCourses = await getAllCourses();
+      setRecentCourses(updatedCourses.slice(0, 5));
       
     } catch (error) {
       console.error("Upload error:", error);
@@ -183,7 +171,7 @@ const UploadCourses = () => {
             <CardFooter>
               <Button 
                 onClick={handleUpload} 
-                disabled={uploading || !user}
+                disabled={uploading}
                 className="w-full md:w-auto"
               >
                 {uploading ? (
@@ -203,13 +191,13 @@ const UploadCourses = () => {
         </div>
         
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Your Recent Uploads</h2>
-          {userCourses.length === 0 ? (
+          <h2 className="text-xl font-semibold">Recent Uploads</h2>
+          {recentCourses.length === 0 ? (
             <Card className="p-4">
               <p className="text-muted-foreground text-center">No uploaded materials yet</p>
             </Card>
           ) : (
-            userCourses.slice(0, 5).map((course) => (
+            recentCourses.map((course) => (
               <Card key={course.id} className="p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-medium truncate">{course.title}</h3>
                 {course.description && (

@@ -25,13 +25,10 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import Stats from "@/components/dashboard/Stats";
 import StudentProfile from "@/components/dashboard/StudentProfile";
-import { useAuth } from "@/context/AuthContext";
-import { getUserProfile, getPublicCourses, type UserProfile, type Course } from "@/lib/supabase-utils";
+import { getPublicCourses, type Course } from "@/lib/supabase-utils";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [attendanceCount, setAttendanceCount] = useState(() => {
@@ -45,17 +42,6 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState<Course[]>([]);
-  
-  // Load user profile when component mounts
-  useEffect(() => {
-    if (user) {
-      getUserProfile(user.id).then(profile => {
-        if (profile) {
-          setUserProfile(profile);
-        }
-      });
-    }
-  }, [user]);
 
   const markAttendance = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -81,8 +67,8 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
       navigate("/");
+      toast.success("Logged out successfully");
     } catch (error) {
       console.error('Logout error:', error);
       toast.error("Error logging out");
@@ -290,20 +276,11 @@ const Dashboard = () => {
                 onClick={handleProfileClick}
               >
                 <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white">
-                  <span className="font-medium text-sm">
-                    {userProfile?.name ? 
-                      userProfile.name.split(" ").map(n => n[0]).join("") : 
-                      user?.email?.charAt(0).toUpperCase() || "U"
-                    }
-                  </span>
+                  <span className="font-medium text-sm">U</span>
                 </div>
                 <div className="hidden md:block">
-                  <div className="text-sm font-medium">
-                    {userProfile?.name || user?.email || "User"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {userProfile?.role || "Student"}
-                  </div>
+                  <div className="text-sm font-medium">Guest User</div>
+                  <div className="text-xs text-muted-foreground">Student</div>
                 </div>
               </div>
             </div>
